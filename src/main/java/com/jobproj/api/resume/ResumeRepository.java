@@ -1,0 +1,136 @@
+package com.jobproj.api.resume;
+
+import com.jobproj.api.common.JdbcUtils;
+import com.jobproj.api.common.PageRequest;
+import com.jobproj.api.resume.ResumeDto.CreateRequest;
+import com.jobproj.api.resume.ResumeDto.Response;
+import com.jobproj.api.resume.ResumeDto.UpdateRequest;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.*;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class ResumeRepository {
+
+  private final NamedParameterJdbcTemplate jdbc;
+
+  public ResumeRepository(NamedParameterJdbcTemplate jdbc) {
+    this.jdbc = jdbc;
+  }
+
+  private static final RowMapper<Response> MAPPER =
+      (ResultSet rs, int i) ->
+          new Response(
+              rs.getLong("resume_id"),
+              rs.getLong("users_id"),
+              rs.getString("title"),
+              rs.getString("summary"),
+              rs.getInt("is_public") == 1,
+              rs.getTimestamp("resume_created_at").toLocalDateTime(),
+              rs.getTimestamp("resume_updated_at").toLocalDateTime());
+
+  /** usersId를 인자로 받아 INSERT */
+  public Long create(Long usersId, CreateRequest req) {
+    String sql =
+        """
+      INSERT INTO resume (users_id, title, summary, is_public, resume_created_at, resume_updated_at)
+      VALUES (:usersId, :title, :summary, :isPublic, :now, :now)
+      """;
+    var params =
+        new MapSqlParameterSource()
+            .addValue("usersId", usersId)
+            .addValue("title", req.title)
+            .addValue("summary", req.summary)
+            .addValue("isPublic", Boolean.TRUE.equals(req.isPublic) ? 1 : 0)
+            .addValue("now", Timestamp.valueOf(LocalDateTime.now()));
+    var kh = new GeneratedKeyHolder();
+    jdbc.update(sql, params, kh, new String[] {"resume_id"});
+    return kh.getKey().longValue();
+  }
+
+  public Optional<Response> findById(Long id) {
+    try {
+      String sql =
+          """
+        SELECT resume_id, users_id, title, summary, is_public,
+               resume_created_at, resume_updated_at
+        FROM resume
+        WHERE resume_id = :id
+        """;
+      return Optional.ofNullable(jdbc.queryForObject(sql, Map.of("id", id), MAPPER));
+    } catch (EmptyResultDataAccessException e) {
+      return Optional.empty();
+    }
+  }
+
+  public int update(Long id, UpdateRequest req) {
+    String sql =
+        """
+      UPDATE resume
+         SET title = :title,
+             summary = :summary,
+             is_public = :isPublic,
+             resume_updated_at = :now
+       WHERE resume_id = :id
+      """;
+    return jdbc.update(
+        sql,
+        new MapSqlParameterSource()
+            .addValue("title", req.title)
+            .addValue("summary", req.summary)
+            .addValue("isPublic", Boolean.TRUE.equals(req.isPublic) ? 1 : 0)
+            .addValue("now", Timestamp.valueOf(LocalDateTime.now()))
+            .addValue("id", id));
+  }
+
+  public int delete(Long id) {
+    String sql = "DELETE FROM resume WHERE resume_id = :id";
+    return jdbc.update(sql, Map.of("id", id));
+  }
+
+  public List<Response> search(PageRequest pr, Long usersId, String keyword) {
+    Map<String, String> sortMap =
+        Map.of(
+            "created_at", "resume_created_at",
+            "updated_at", "resume_updated_at",
+            "title", "title");
+    String where = " WHERE users_id = :usersId ";
+    where += JdbcUtils.whereLike(keyword, "title", "summary");
+
+    String sql =
+        """
+      SELECT resume_id, users_id, title, summary, is_public,
+             resume_created_at, resume_updated_at
+      FROM resume
+      """
+            + where
+            + JdbcUtils.orderBy(pr.getSort(), sortMap)
+            + " LIMIT :limit OFFSET :offset";
+
+    var params =
+        new MapSqlParameterSource()
+            .addValue("usersId", usersId)
+            .addValue("kw", (keyword == null || keyword.isBlank()) ? null : "%" + keyword + "%")
+            .addValue("limit", pr.getSize())
+            .addValue("offset", pr.offset());
+
+    return jdbc.query(sql, params, MAPPER);
+  }
+
+  public long count(Long usersId, String keyword) {
+    String where = " WHERE users_id = :usersId ";
+    where += JdbcUtils.whereLike(keyword, "title", "summary");
+    String sql = "SELECT COUNT(*) FROM resume " + where;
+    var params =
+        new MapSqlParameterSource()
+            .addValue("usersId", usersId)
+            .addValue("kw", (keyword == null || keyword.isBlank()) ? null : "%" + keyword + "%");
+    return jdbc.queryForObject(sql, params, Long.class);
+  }
+}
