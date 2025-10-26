@@ -1,0 +1,21 @@
+# Build / Gradle
+/build/
+/.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ / Eclipse
+/.idea/
+/*.iml
+/.project
+/.classpath
+/.settings/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring
+/tmp/
