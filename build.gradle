@@ -19,6 +19,16 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+}
+
 dependencies {
     // Spring Boot Core
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -28,10 +38,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.security:spring-security-crypto'
 
-    // ✅ Swagger (Spring Boot 3.3.x 호환 최신 안정버전)
+    // ✅ View (templates/home.html 렌더링용)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // ✅ Swagger (Spring Boot 3.3.x 호환)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
-    // ✅ JWT 0.11.5 (parserBuilder 사용 가능, 안정 조합)
+    // ✅ JWT 0.11.5 (parserBuilder 사용 가능)
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.11.5'
@@ -39,24 +52,30 @@ dependencies {
     // ✅ DB
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // ✅ Flyway
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+
     // ✅ Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // ✅ Devtools (개발 편의)
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
     // ✅ Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-    //Flyway 의존성 추가
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-mysql'
+    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint:deprecation','-Xlint:unchecked']
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
 }
 
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+}
 
 /** Checkstyle 완전 비활성화 */
 checkstyle {

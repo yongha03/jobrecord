@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -22,35 +21,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final CustomUserDetailsService customUserDetailsService;
 
   @Override
-  protected void doFilterInternal(
-          HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-          throws ServletException, IOException {
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
 
-    String path = request.getRequestURI();
-
-    // Swagger/Docs/Actuator + 로그인/회원가입은 필터 통과(토큰 검사 안함)
-    if (path.startsWith("/v3/api-docs")
-            || path.startsWith("/swagger-ui")
-            || path.startsWith("/swagger-ui.html")
-            || path.startsWith("/webjars")
-            || path.startsWith("/api/actuator")
-            || path.startsWith("/auth/")) {
-      filterChain.doFilter(request, response);
+    // 1) CORS Preflight는 무조건 통과
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+      chain.doFilter(request, response);
       return;
     }
 
+    // 2) 헤더에서 토큰 추출 (없으면 그대로 통과 -> permitAll 경로 열림)
     String token = jwtTokenProvider.resolveToken(request);
-    if (token != null && jwtTokenProvider.validateToken(token)) {
-      String email = jwtTokenProvider.getEmail(token);
-      UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
-      Authentication authentication =
-              new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-      // 요청 기반 세부정보 부여(감사/추적에 유용)
-      ((UsernamePasswordAuthenticationToken) authentication)
-              .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+    if (token == null || token.isBlank()) {
+      chain.doFilter(request, response);
+      return;
     }
 
-    filterChain.doFilter(request, response);
+    // 3) 토큰이 있을 때만 검증 & SecurityContext 설정
+    try {
+      if (jwtTokenProvider.validateToken(token)) {
+        String email = jwtTokenProvider.getEmail(token);
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+
+        UsernamePasswordAuthenticationToken auth =
+            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+      }
+    } catch (Exception ignore) {
+      // 유효하지 않은 토큰이면 컨텍스트만 비우고 계속 진행(여기서 401 쓰지 않음)
+      SecurityContextHolder.clearContext();
+    }
+
+    chain.doFilter(request, response);
   }
 }

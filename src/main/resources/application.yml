@@ -1,10 +1,15 @@
 server:
   port: 8080
-  # 업로드 한도 초과 시 에러 응답이 제대로 전달되도록(요청 바디를 삼키지 않게)
   tomcat:
     max-swallow-size: -1
 
 spring:
+  web:
+    resources:
+      add-mappings: true   # 정적 리소스 매핑 활성 (안심용)
+  thymeleaf:
+    cache: false           # 개발 중 템플릿 캐시 끔
+
   datasource:
     url: jdbc:mysql://127.0.0.1:3307/jobproj_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=utf8&allowPublicKeyRetrieval=true&allowMultiQueries=true
     username: db_user
@@ -18,13 +23,11 @@ spring:
       write-dates-as-timestamps: false
 
   servlet:
-    # 업로드 최대 용량 10MB 설정
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-      # 멀티파트 파싱 지연 → 컨트롤러/예외처리단에서 잡도록
       resolve-lazily: true
-  #9주차 추가 2233076
+
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -43,13 +46,14 @@ management:
 jwt:
   secret-key: "Sm9iUmVjb3JkX1Byb2plY3RfU2VjcmV0X0tleV9FbmNvZGVfUGxlYXNl"
   expiration-ms: 3600000
-  # Refresh 토큰 만료 14일
   refresh-expiration-ms: 1209600000
 
 springdoc:
   api-docs:
     enabled: true
+    path: /api-docs
   cache:
     disabled: true
   swagger-ui:
-    path: /swagger-ui
+    path: /docs
+    use-root-path: false

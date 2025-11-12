@@ -4,6 +4,7 @@ import com.jobproj.api.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -32,70 +33,65 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable())
-        .cors(cors -> {}) // 아래 CorsConfigurationSource 빈만 사용
+    http
+        .csrf(csrf -> csrf.disable())
+        .cors(cors -> {})
+        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            // Swagger
-            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
-            // Actuator (health)
-            .requestMatchers("/api/actuator/**").permitAll()
-            // Auth (login/signup/refresh/logout)
+            // 공통 정적 리소스 핸들러 (META-INF/resources, /resources, /static, /public, /webjars)
+            .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+
+            // 명시적 정적 경로 허용 (이미지 401 방지)
+            .requestMatchers("/css/**", "/js/**", "/img/**", "/images/**",
+                             "/webjars/**", "/favicon.ico").permitAll()
+
+            // 템플릿 라우트
+            .requestMatchers("/", "/home", "/home.html", "/error").permitAll()
             .requestMatchers("/auth/**").permitAll()
-            // Jobs 더미 (데모 기간 공개)
-            .requestMatchers("/jobs/**").permitAll()
+
+            // Swagger 경로 (application.yml의 커스텀 경로 기준)
+            .requestMatchers("/api-docs/**", "/docs/**").permitAll()
+
+            // Actuator
+            .requestMatchers("/api/actuator/**", "/actuator/**").permitAll()
+
             // Preflight
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            // 다운로드는 인증 필요(공개로 바꾸려면 permitAll)
-            .requestMatchers(HttpMethod.GET, "/attachments/*/download", "/api/attachments/*/download").authenticated()
-            // 그 외는 인증
-            .anyRequest().authenticated())
-        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // 나머지 보호
+            .anyRequest().authenticated()
+        )
         .exceptionHandling(ex -> ex
-            .authenticationEntryPoint((req, res, e) -> { // 401
+            .authenticationEntryPoint((req, res, e) -> {
               res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
               res.setContentType("application/json;charset=UTF-8");
-              res.getWriter().write("""
-                  {"errorCode":"A001","message":"인증이 필요합니다.","status":401}
-                  """);
+              res.getWriter().write("{\"errorCode\":\"A001\",\"message\":\"인증이 필요합니다.\",\"status\":401}");
             })
-            .accessDeniedHandler((req, res, e) -> { // 403
+            .accessDeniedHandler((req, res, e) -> {
               res.setStatus(HttpServletResponse.SC_FORBIDDEN);
               res.setContentType("application/json;charset=UTF-8");
-              res.getWriter().write("""
-                  {"errorCode":"A002","message":"권한이 없습니다.","status":403}
-                  """);
-            }))
+              res.getWriter().write("{\"errorCode\":\"A002\",\"message\":\"권한이 없습니다.\",\"status\":403}");
+            })
+        )
+        // JWT 필터 (UsernamePasswordAuthenticationFilter 앞)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
-  /** 쿠키 기반 CORS (credentials + 화이트리스트 고정) */
+  /** 쿠키/도메인 분리 환경용 CORS (동일 도메인만 쓰면 사실 불필요) */
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration cfg = new CorsConfiguration();
-
-    // 개발 + (운영 도메인 추가 주석)
     cfg.setAllowedOrigins(List.of(
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-        // "https://front.example.com" // 운영 배포 시 추가
+        "http://localhost:3000", "http://127.0.0.1:3000",
+        "http://localhost:5173", "http://127.0.0.1:5173"
+        // 동일 도메인(8080)에서만 쓰면 위 리스트는 안 써도 됨
     ));
-
     cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-
-    // 꼭 필요한 헤더만 허용(불가피하면 "*"로 전환 가능)
-    cfg.setAllowedHeaders(List.of("Content-Type", "X-Requested-With"));
-
-    // 파일 다운로드 파일명 노출만 필요
+    cfg.setAllowedHeaders(List.of("Authorization","Content-Type","X-Requested-With","Accept","Origin","Cache-Control","Pragma"));
     cfg.setExposedHeaders(List.of("Content-Disposition"));
-
-    // 쿠키 인증 핵심
     cfg.setAllowCredentials(true);
-
-    // 프리플라이트 캐시(1시간)
     cfg.setMaxAge(3600L);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
