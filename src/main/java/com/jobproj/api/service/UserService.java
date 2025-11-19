@@ -5,36 +5,32 @@ import com.jobproj.api.dto.LoginResponse;
 import com.jobproj.api.repo.UserRepo;
 import com.jobproj.api.repo.UserRepo.UserRow;
 import com.jobproj.api.security.JwtTokenProvider;
-
-import java.security.SecureRandom;           // 11주차 추가
-import java.util.Random;                   // 11주차 추가
-import java.util.concurrent.TimeUnit;      // 11주차 추가
-
+import java.security.SecureRandom;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;          // 11주차 추가
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;  // 11주차 추가
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // 11주차 추가
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j //2233076 11주차 추가
+@Slf4j
 public class UserService {
 
-    // --- 2233076 11주차 추가: 의존성 주입 ---
+    // 의존성 주입 ---
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
-    // ---
 
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // 11주차 추가: 인증번호 Redis 키 접두사 및 유효 시간 (3분)
+    // 인증번호 Redis 키 접두사 및 유효 시간 (3분)
     private static final String RESET_CODE_PREFIX = "RESET_CODE:";
     private static final long CODE_TTL_MINUTES = 3;
 
@@ -53,26 +49,32 @@ public class UserService {
         return LoginResponse.of(token, expiresIn);
     }
 
-    // 융합프로젝트 김태형 11주차 이메일 중복체크 : 회원가입 전 이메일 사용 여부 확인 서비스 (추가)
-    @Transactional(readOnly = true)              // (추가)
-    public boolean isEmailDuplicate(String email) { // (추가)
-        return userRepo.existsByEmail(email);      // (추가)
-    }                                            // (추가)
+    // 이메일 중복체크 : 회원가입 전 이메일 사용 여부 확인 서비스
+    @Transactional(readOnly = true)
+    public boolean isEmailDuplicate(String email) {
+        return userRepo.existsByEmail(email);
+    }
 
+    // 🔽 전화번호 중복체크 : 회원가입 전 전화번호 사용 여부 확인 서비스
+    @Transactional(readOnly = true)
+    public boolean isPhoneDuplicate(String phone) {
+        return userRepo.existsByPhone(phone);
+    }
     /** 회원가입 */
-    @Transactional // 2233076 11주차 추가
-    public void signup(String email, String rawPassword, String name) {
-        // 기존의 userRepo.existsByEmail(email) 호출을 isEmailDuplicate 재사용으로 변경 (수정)
-        if (isEmailDuplicate(email)) { // (수정)
+    @Transactional
+    public void signup(String email, String rawPassword, String name, String phone) { // 🔽 phone 추가
+        // 기존의 userRepo.existsByEmail(email) 호출을 isEmailDuplicate 재사용으로 변경
+        if (isEmailDuplicate(email)) {
             throw new IllegalStateException("이미 사용 중인 이메일입니다.");
         }
         String encodedPassword = passwordEncoder.encode(rawPassword);
         Role role = Role.USER;
-        userRepo.save(email, encodedPassword, name, role);
+        // 🔽 전화번호까지 함께 저장
+        userRepo.save(email, encodedPassword, name, phone, role);
     }
 
     // =======================================================
-    // 2233076 11주차: 비밀번호 찾기 기능
+    // 비밀번호 찾기 기능
     // =======================================================
 
     /**
@@ -102,25 +104,25 @@ public class UserService {
         log.info("EmailService: {}님에게 인증번호 발송", email);
     }
 
-    // 융합프로젝트 김태형 11주차 비밀번호 재설정 : 인증번호 검증 공통 로직 (추가)
-    private void validateResetCodeOrThrow(String email, String code) {  // (추가)
-        String redisKey = RESET_CODE_PREFIX + email;                      // (추가)
-        String storedCode = redisTemplate.opsForValue().get(redisKey);   // (추가)
+    // 비밀번호 재설정 : 인증번호 검증 공통 로직
+    private void validateResetCodeOrThrow(String email, String code) {
+        String redisKey = RESET_CODE_PREFIX + email;
+        String storedCode = redisTemplate.opsForValue().get(redisKey);
 
-        if (storedCode == null) {                                        // (추가)
-            throw new IllegalStateException("인증번호가 만료되었거나 유효하지 않습니다."); // (추가)
+        if (storedCode == null) {
+            throw new IllegalStateException("인증번호가 만료되었거나 유효하지 않습니다.");
         }
-        if (!storedCode.equals(code)) {                                  // (추가)
-            throw new IllegalStateException("인증번호가 일치하지 않습니다.");          // (추가)
+        if (!storedCode.equals(code)) {
+            throw new IllegalStateException("인증번호가 일치하지 않습니다.");
         }
     }
 
-    // 융합프로젝트 김태형 11주차 비밀번호 재설정 : 인증번호만 먼저 확인하는 서비스 (추가)
-    @Transactional(readOnly = true)          // (추가)
-    public void verifyPasswordResetCode(     // (추가)
-                                             String email, String code            // (추가)
+    // 비밀번호 재설정 : 인증번호만 먼저 확인하는 서비스
+    @Transactional(readOnly = true)
+    public void verifyPasswordResetCode(
+                                             String email, String code
     ) {
-        validateResetCodeOrThrow(email, code); // (추가)
+        validateResetCodeOrThrow(email, code);
     }
 
     /**
@@ -128,9 +130,9 @@ public class UserService {
      */
     @Transactional
     public void resetPassword(String email, String code, String newPassword) {
-        // 융합프로젝트 김태형 11주차 비밀번호 재설정 : 공통 검증 메서드 재사용 (수정)
-        validateResetCodeOrThrow(email, code);                 // (수정)
-        String redisKey = RESET_CODE_PREFIX + email;           // (수정)
+        // 비밀번호 재설정 : 공통 검증 메서드 재사용
+        validateResetCodeOrThrow(email, code);
+        String redisKey = RESET_CODE_PREFIX + email;
 
         // 3. (검증 성공) 새 비밀번호 암호화 및 DB 업데이트
         String encodedPassword = passwordEncoder.encode(newPassword);

@@ -24,13 +24,20 @@
       <div class="input-group">
         <label for="email">*E-Mail</label>
         <input type="email" id="email" name="email" />
-        <!-- 융합프로젝트 김태형 11주차 이메일 중복체크 : 이메일 에러 메시지 표시 영역 (추가) -->
-        <span id="email-error" class="error-text" aria-live="polite"></span> <!-- (추가) -->
+        <!-- 이메일 중복체크 : 이메일 에러 메시지 표시 영역 -->
+        <span id="email-error" class="error-text" aria-live="polite"></span>
       </div>
 
       <div class="input-group">
         <label for="name">*이름</label>
         <input type="text" id="name" name="name" />
+      </div>
+
+      <!-- 전화번호 입력란 추가 -->
+      <div class="input-group">
+        <label for="phone">*전화번호</label>
+        <input type="tel" id="phone" name="phone" placeholder="010-1234-5678" />
+        <span id="phone-error" class="error-text" aria-live="polite"></span>
       </div>
 
       <div class="input-group">

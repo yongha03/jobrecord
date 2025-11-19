@@ -14,6 +14,7 @@ public class UserDto {
     private final Long id;
     private final String email;
     private final String name;
+    private final String phone; // 🔽 전화번호 추가
     private final Role role;
 
     // UserRow(DB) 객체를 Response(DTO) 객체로 변환하는 생성자
@@ -21,6 +22,7 @@ public class UserDto {
       this.id = user.id;
       this.email = user.email;
       this.name = user.name;
+      this.phone = user.phone; // 🔽 매핑
       this.role = user.role;
     }
   }

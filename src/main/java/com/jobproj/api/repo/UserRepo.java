@@ -21,6 +21,7 @@ public class UserRepo {
     public String email;
     public String pwdHash; // DB의 password_hash
     public String name;
+    public String phone;   // 🔽 전화번호 필드 추가
     public Role role;
 
     @Override
@@ -30,6 +31,7 @@ public class UserRepo {
       u.email = rs.getString("users_email");
       u.pwdHash = rs.getString("users_password_hash");
       u.name = rs.getString("users_name");
+      u.phone = rs.getString("users_phone"); // 🔽 phone 매핑
       u.role = Role.fromString(rs.getString("users_role"));
       return u;
     }
@@ -39,7 +41,8 @@ public class UserRepo {
   public Optional<UserRow> findByEmail(String email) {
     String sql =
         "SELECT users_id, users_email, users_password_hash, "
-            + "users_name, users_role FROM jobproject_users WHERE users_email=?";
+            + "users_name, users_phone, users_role "  // 🔽 users_phone 추가
+            + "FROM jobproject_users WHERE users_email=?";
     return jdbc.query(sql, new UserRow(), email).stream().findFirst();
   }
 
@@ -60,25 +63,36 @@ public class UserRepo {
     Integer count = jdbc.queryForObject(sql, Integer.class, email);
     return count != null && count > 0;
   }
+  
+  // 🔽 전화번호 중복 확인 (회원가입 시 사용)
+public boolean existsByPhone(String phone) {
+  String sql = "SELECT COUNT(*) FROM jobproject_users WHERE users_phone = ?";
+  Integer count = jdbc.queryForObject(sql, Integer.class, phone);
+  return count != null && count > 0;
+}
 
-  public void save(String email, String encodedPassword, String name, Role role) {
+  // 🔽 phone까지 저장하도록 수정
+  public void save(String email, String encodedPassword, String name, String phone, Role role) {
     String sql =
-        "INSERT INTO jobproject_users (users_email, users_password_hash, users_name, users_role) "
-            + "VALUES (?, ?, ?, ?)";
-    jdbc.update(sql, email, encodedPassword, name, role.name());
+        "INSERT INTO jobproject_users "
+            + "(users_email, users_password_hash, users_name, users_phone, users_role) "
+            + "VALUES (?, ?, ?, ?, ?)";
+    jdbc.update(sql, email, encodedPassword, name, phone, role.name());
   }
 
-  // 2233076 10주차 추가: 이메일을 기준으로 비밀번호 해시 업데이트.
+  // 이메일을 기준으로 비밀번호 해시 업데이트.
   public int updatePasswordByEmail(String email, String encodedPassword) {
     String sql =
             "UPDATE jobproject_users SET users_password_hash = ? WHERE users_email = ?";
     return jdbc.update(sql, encodedPassword, email);
   }
-  // 8주차 추가: users_id로 사용자 상세 정보 조회
+
+  // users_id로 사용자 상세 정보 조회
   public Optional<UserRow> findById(Long usersId) {
     String sql =
         "SELECT users_id, users_email, users_password_hash, "
-            + "users_name, users_role FROM jobproject_users WHERE users_id=?";
+            + "users_name, users_phone, users_role "  // 🔽 users_phone 추가
+            + "FROM jobproject_users WHERE users_id=?";
     return jdbc.query(sql, new UserRow(), usersId).stream().findFirst();
   }
 }

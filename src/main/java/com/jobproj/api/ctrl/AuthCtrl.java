@@ -4,14 +4,12 @@ import com.jobproj.api.dto.LoginRequest;
 import com.jobproj.api.dto.LoginResponse;
 import com.jobproj.api.dto.SignupRequest;
 import com.jobproj.api.security.JwtTokenProvider;
-// 융합프로젝트 김태형 11주차 비밀번호 재설정(OpenAPI 스펙 확정) : 비밀번호 재설정 DTO 임포트 (추가)
-import com.jobproj.api.dto.PasswordResetRequest;          // (추가)
-import com.jobproj.api.dto.PasswordResetConfirm;          // (추가)
+import com.jobproj.api.dto.PasswordResetRequest;
+import com.jobproj.api.dto.PasswordResetConfirm;
 import com.jobproj.api.service.UserService;
-// 융합프로젝트 김태형 11주차 비밀번호 재설정(OpenAPI 스펙 확정) : 비밀번호 재설정 DTO 임포트 (추가)
-import com.jobproj.api.dto.PasswordResetRequest;          // (추가)
-import com.jobproj.api.dto.PasswordResetConfirm;          // (추가)
-import com.jobproj.api.dto.PasswordResetVerifyRequest;    // (추가)
+import com.jobproj.api.dto.PasswordResetRequest;
+import com.jobproj.api.dto.PasswordResetConfirm;
+import com.jobproj.api.dto.PasswordResetVerifyRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -154,16 +152,17 @@ public class AuthCtrl {
     })
     @PostMapping(value = "/auth/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest req) {
-        userService.signup(req.getEmail(), req.getPassword(), req.getName());
+        // 🔽 phone까지 같이 전달
+        userService.signup(req.getEmail(), req.getPassword(), req.getName(), req.getPhone());
         return ResponseEntity.status(201)
                 .body(Map.of("message", "회원가입 성공", "email", req.getEmail()));
     }
 
-    // 융합프로젝트 김태형 11주차 이메일 중복체크(OpenAPI 스펙 확정) : 회원가입 전 이메일 사용 가능 여부 확인 API (추가)
+    // 회원가입 전 이메일 사용 가능 여부 확인 API
     @Operation(
             summary = "이메일 중복 체크",
             description = "회원가입 시 입력한 이메일이 이미 사용 중인지 확인합니다.",
-            security = {} // 비로그인 상태에서 호출 (추가)
+            security = {} // 비로그인 상태에서 호출
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -185,17 +184,46 @@ public class AuthCtrl {
                     )
             )
     })
-    @GetMapping(value = "/auth/check-email", produces = MediaType.APPLICATION_JSON_VALUE) // (추가)
-    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam String email) {  // (추가)
-        boolean exists = userService.isEmailDuplicate(email);                             // (추가)
-        return ResponseEntity.ok(Map.of("exists", exists));                               // (추가)
-    }                                                                                     // (추가)
+    @GetMapping(value = "/auth/check-email", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam String email) {
+        boolean exists = userService.isEmailDuplicate(email);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+        // 🔽 전화번호 중복 체크 API
+        @Operation(
+                summary = "전화번호 중복 체크",
+                description = "회원가입 시 입력한 전화번호가 이미 사용 중인지 확인합니다.",
+                security = {} // 비로그인 상태에서 호출
+        )
+        @ApiResponses(value = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "OK",
+                        content = @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = Map.class),
+                                examples = {
+                                        @ExampleObject(
+                                                name = "이미 존재하는 전화번호",
+                                                value = "{\"exists\": true}"
+                                        ),
+                                        @ExampleObject(
+                                                name = "사용 가능한 전화번호",
+                                                value = "{\"exists\": false}"
+                                        )
+                                }
+                        )
+                )
+        })
+        @GetMapping(value = "/auth/check-phone", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Map<String, Boolean>> checkPhone(@RequestParam String phone) {
+        boolean exists = userService.isPhoneDuplicate(phone);
+        return ResponseEntity.ok(Map.of("exists", exists));
+        }    
 
-    // 2233076 11주차 추가: 비밀번호 재설정
     // ---------------------- 비밀번호 재설정 ----------------------
 
     /**
-     * 2233076 11주차 추가
      * 1. 비밀번호 재설정 코드 발송
      * (UserService의 sendPasswordResetCode 호출)
      */
@@ -208,33 +236,32 @@ public class AuthCtrl {
     public ResponseEntity<?> requestPasswordReset(@Valid @RequestBody PasswordResetRequest req) {
         userService.sendPasswordResetCode(req.getEmail());
         // (보안) 이메일이 존재하지 않아도, 공격자에게 힌트를 주지 않기 위해 항상 200 OK를 반환합니다.
-        // 융합프로젝트 김태형 11주차 비밀번호 재설정 UI 개선 : 남은 시간 문구는 프론트 타이머로 대체 (수정)
-        return ResponseEntity.ok(Map.of("message", "인증번호가 발송되었습니다.")); // (수정)
+        // 비밀번호 재설정 UI 개선 : 남은 시간 문구는 프론트 타이머로 대체
+        return ResponseEntity.ok(Map.of("message", "인증번호가 발송되었습니다."));
     }
 
     /**
-     * 융합프로젝트 김태형 11주차 비밀번호 재설정 : 인증번호만 검증하는 API (추가)
+     * 비밀번호 재설정 : 인증번호만 검증하는 API
      * 2-1. 인증번호 검증 (비밀번호 변경 전 단계)
      */
     @Operation(
             summary = "비밀번호 재설정 인증번호 검증",
             description = "이메일과 인증번호가 일치하는지 확인만 수행합니다.",
-            security = {} // 비로그인 상태 호출 (추가)
+            security = {} // 비로그인 상태 호출
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "검증 성공"),
             @ApiResponse(responseCode = "400", description = "검증 실패 (만료/불일치)")
     })
-    @PostMapping(value = "/auth/password-reset/verify", consumes = MediaType.APPLICATION_JSON_VALUE) // (추가)
-    public ResponseEntity<?> verifyPasswordReset( // (수정)
-            @Valid @RequestBody PasswordResetVerifyRequest req) { // (수정)
+    @PostMapping(value = "/auth/password-reset/verify", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> verifyPasswordReset(
+            @Valid @RequestBody PasswordResetVerifyRequest req) {
         userService.verifyPasswordResetCode(req.getEmail(), req.getCode()); // (수정: DTO 타입만 변경)
-        return ResponseEntity.ok(Map.of("message", "인증번호가 확인되었습니다.")); // (추가)
+        return ResponseEntity.ok(Map.of("message", "인증번호가 확인되었습니다."));
     }
 
     /**
-     * 2233076 11주차 추가
-     * 2-2. 인증번호 검증 및 비밀번호 재설정
+     * 2-2. 비밀번호 재설정 및 완료
      * (UserService의 resetPassword 호출)
      */
     @Operation(summary = "비밀번호 재설정", description = "이메일, 인증번호, 새 비밀번호로 재설정을 완료합니다.", security = {})
