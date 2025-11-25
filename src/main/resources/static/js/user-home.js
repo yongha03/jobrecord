@@ -4,10 +4,7 @@
 // - 로그아웃(/auth/logout) 호출 후 home.html로 이동
 
 // 0. API Base (env.js에서 설정했다면 그 값 사용)
-const apiBase =
-  (window.ENV && window.ENV.API_BASE_URL)
-    ? window.ENV.API_BASE_URL
-    : '';
+const apiBase = (window.ENV && window.ENV.API_BASE_URL) ? window.ENV.API_BASE_URL : 'http://localhost:8080';
 
 // 1. 드롭다운 토글 관련 요소
 const profileIcon = document.getElementById('profile-icon');
@@ -37,17 +34,16 @@ document.addEventListener('DOMContentLoaded', function () {
   if (nameEl && emailEl) {
     fetch(apiBase + '/api/users/me', {
       method: 'GET',
-      credentials: 'include', // 쿠키 같이 전송 (access_token)
+      credentials: 'include', // 쿠키 자동 전송
       headers: {
         'Accept': 'application/json'
       }
     })
       .then(function (res) {
-        // 401/403이면 세션 만료로 보고 그냥 홈으로 돌려보내도 됨 (원하면 아래 주석 해제)
-        // if (res.status === 401 || res.status === 403) {
-        //   window.location.href = '/home';
-        //   return Promise.reject('unauthorized');
-        // }
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/auth/login';
+          return Promise.reject('unauthorized');
+        }
         return res.json();
       })
       .then(function (body) {
@@ -74,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     logoutLink.addEventListener('click', function (event) {
       event.preventDefault();
 
+      // 서버에 로그아웃 요청하여 쿠키 정리
       fetch(apiBase + '/auth/logout', {
         method: 'POST',
         credentials: 'include'
@@ -83,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .finally(function () {
           // 쿠키 정리는 서버에서 하고, 화면은 공개 home.html로 이동
-          window.location.href = '/home'; // 공개 홈 경로에 맞게 필요하면 '/' 등으로 변경
+          window.location.href = '/home';
         });
     });
   } else {

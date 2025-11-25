@@ -16,6 +16,8 @@ public class UserDto {
     private final String name;
     private final String phone; // 🔽 전화번호 추가
     private final Role role;
+    private final String createdAt; // 가입일
+    private final String updatedAt; // 최근 수정일
 
     // UserRow(DB) 객체를 Response(DTO) 객체로 변환하는 생성자
     public Response(UserRow user) {
@@ -24,6 +26,8 @@ public class UserDto {
       this.name = user.name;
       this.phone = user.phone; // 🔽 매핑
       this.role = user.role;
+      this.createdAt = user.createdAt != null ? user.createdAt.toString() : null;
+      this.updatedAt = user.updatedAt != null ? user.updatedAt.toString() : null;
     }
   }
 }

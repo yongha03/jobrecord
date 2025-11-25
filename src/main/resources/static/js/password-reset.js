@@ -1,7 +1,6 @@
 // 비밀번호 찾기(모달) - 인증번호 발송/검증 + 3분 타이머 + 비밀번호 재설정
 
-const API_BASE_URL =
-  (window.ENV && window.ENV.API_BASE_URL) ? window.ENV.API_BASE_URL : "";
+const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) ? window.ENV.API_BASE_URL : "http://localhost:8080";
 
 // 1단계 요소
 const formRequest = document.getElementById("form-request");
@@ -103,7 +102,8 @@ function resetPasswordModalState() {
   if (formRequest) {
     formRequest.style.display = "flex";
   }
-  if (reqEmailInput) reqEmailInput.value = "";
+  // 마이페이지에서는 이메일을 유지하고, 로그인 페이지에서는 초기화
+  // if (reqEmailInput) reqEmailInput.value = "";
   if (resetEmailError) resetEmailError.textContent = "";
 
   // 2단계 초기화
@@ -179,9 +179,14 @@ requestCodeButton &&
       return;
     }
 
+    // 버튼 비활성화 및 텍스트 변경 (피드백)
+    const originalText = requestCodeButton.textContent;
+    requestCodeButton.disabled = true;
+    requestCodeButton.textContent = "발송 중...";
+
     if (messageDiv) {
-      messageDiv.style.color = "#d32f2f";
-      messageDiv.textContent = "서버에 요청 중...";
+      messageDiv.style.color = "#4F46E5";
+      messageDiv.textContent = "인증번호를 발송하고 있습니다...";
     }
 
     try {
@@ -219,6 +224,10 @@ requestCodeButton &&
         messageDiv.textContent =
           "요청 실패: " + (err.message || "서버 응답 없음");
       }
+      
+      // 실패 시 버튼 다시 활성화
+      requestCodeButton.disabled = false;
+      requestCodeButton.textContent = originalText;
     }
   });
 
@@ -278,8 +287,13 @@ verifyCodeButton &&
       return;
     }
 
+    // 버튼 비활성화 및 텍스트 변경 (피드백)
+    const originalText = verifyCodeButton.textContent;
+    verifyCodeButton.disabled = true;
+    verifyCodeButton.textContent = "확인 중...";
+
     if (codeMessage) {
-      codeMessage.style.color = "#d32f2f";
+      codeMessage.style.color = "#4F46E5";
       codeMessage.textContent = "인증번호 확인 중입니다...";
     }
     if (confPasswordError) {
@@ -307,7 +321,7 @@ verifyCodeButton &&
         codeMessage.textContent = "인증번호가 확인되었습니다.";
       }
       if (confCodeInput) confCodeInput.disabled = true;
-      if (verifyCodeButton) verifyCodeButton.disabled = true;
+      // 성공 시 버튼은 disabled 유지
 
       validateConfirmForm();
     } catch (err) {
@@ -316,6 +330,11 @@ verifyCodeButton &&
         codeMessage.style.color = "#d32f2f";
         codeMessage.textContent = "인증번호가 일치하지 않습니다.";
       }
+      
+      // 실패 시 버튼 다시 활성화
+      verifyCodeButton.disabled = false;
+      verifyCodeButton.textContent = originalText;
+      
       validateConfirmForm();
     }
   });
@@ -335,6 +354,11 @@ resendCodeButton &&
       return;                                                     // (추가)
     }
 
+    // 버튼 비활성화 및 텍스트 변경 (피드백)
+    const originalText = resendCodeButton.textContent;
+    resendCodeButton.disabled = true;
+    resendCodeButton.textContent = "발송 중...";
+
     // 이전 인증 상태/에러 초기화 (추가)
     isCodeVerified = false;                                       // (추가)
     if (confCodeInput) {                                          // (추가)
@@ -349,7 +373,7 @@ resendCodeButton &&
     if (confPasswordError) confPasswordError.textContent = "";    // (추가)
 
     if (messageDiv) {                                             // (추가)
-      messageDiv.style.color = "#d32f2f";                         // (추가)
+      messageDiv.style.color = "#4F46E5";                         // (추가)
       messageDiv.textContent = "인증번호를 다시 발송 중입니다..."; // (추가)
     }
 
@@ -370,6 +394,10 @@ resendCodeButton &&
       // 타이머/메시지 다시 시작 (추가)
       baseTimerMessage = "인증번호가 이메일로 다시 발송되었습니다."; // (추가)
       startResetTimer(180);                                       // (추가)
+      
+      // 성공 시 버튼 다시 활성화
+      resendCodeButton.disabled = false;
+      resendCodeButton.textContent = originalText;
     } catch (err) {                                               // (추가)
       baseTimerMessage = "";                                      // (추가)
       if (messageDiv) {                                           // (추가)
@@ -377,6 +405,10 @@ resendCodeButton &&
         messageDiv.textContent =
           "재발급 실패: " + (err.message || "서버 응답 없음");    // (추가)
       }
+      
+      // 실패 시 버튼 다시 활성화
+      resendCodeButton.disabled = false;
+      resendCodeButton.textContent = originalText;
     }
   });
 
@@ -432,9 +464,14 @@ formConfirm &&
       return;
     }
 
+    // 버튼 비활성화 및 텍스트 변경 (피드백)
+    const originalText = confirmButton.textContent;
+    confirmButton.disabled = true;
+    confirmButton.textContent = "처리 중...";
+
     if (messageDiv) {
-      messageDiv.style.color = "#d32f2f";
-      messageDiv.textContent = "서버에 요청 중...";
+      messageDiv.style.color = "#4F46E5";
+      messageDiv.textContent = "비밀번호를 변경하고 있습니다...";
     }
 
     try {
@@ -466,12 +503,23 @@ formConfirm &&
       }
 
       if (formConfirm) formConfirm.style.display = "none";
+      
+      // 2초 후 모달 자동으로 닫기
+      setTimeout(() => {
+        if (window.closePasswordModal) {
+          window.closePasswordModal();
+        }
+      }, 2000);
     } catch (err) {
       if (messageDiv) {
         messageDiv.style.color = "#d32f2f";
         messageDiv.textContent =
           "재설정 실패: " + (err.message || "서버 응답 없음");
       }
+      
+      // 실패 시 버튼 다시 활성화
+      confirmButton.disabled = false;
+      confirmButton.textContent = originalText;
     }
   });
 
