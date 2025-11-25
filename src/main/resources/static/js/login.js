@@ -97,7 +97,7 @@ if (loginForm) {
           return;
         }
 
-        // 로그인 성공 시 이동
+        // 로그인 성공 시 이동 (토큰은 쿠키로 자동 저장됨)
         window.location.href = '/user/home';
       })
       .catch(function (err) {

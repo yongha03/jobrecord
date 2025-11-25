@@ -23,6 +23,8 @@ public class UserRepo {
     public String name;
     public String phone;   // 🔽 전화번호 필드 추가
     public Role role;
+    public Timestamp createdAt; // 가입일
+    public Timestamp updatedAt; // 최근 수정일
 
     @Override
     public UserRow mapRow(ResultSet rs, int n) throws SQLException {
@@ -33,6 +35,8 @@ public class UserRepo {
       u.name = rs.getString("users_name");
       u.phone = rs.getString("users_phone"); // 🔽 phone 매핑
       u.role = Role.fromString(rs.getString("users_role"));
+      u.createdAt = rs.getTimestamp("users_created_at");
+      u.updatedAt = rs.getTimestamp("users_updated_at");
       return u;
     }
   }
@@ -40,9 +44,10 @@ public class UserRepo {
   // 이메일로 사용자 찾기 (로그인 시 사용)
   public Optional<UserRow> findByEmail(String email) {
     String sql =
-        "SELECT users_id, users_email, users_password_hash, "
-            + "users_name, users_phone, users_role "  // 🔽 users_phone 추가
-            + "FROM jobproject_users WHERE users_email=?";
+            "SELECT users_id, users_email, users_password_hash, "
+                    + "users_name, users_phone, users_role, "
+                    + "users_created_at, users_updated_at "
+                    + "FROM jobproject_users WHERE users_email=?";
     return jdbc.query(sql, new UserRow(), email).stream().findFirst();
   }
 
@@ -63,20 +68,20 @@ public class UserRepo {
     Integer count = jdbc.queryForObject(sql, Integer.class, email);
     return count != null && count > 0;
   }
-  
+
   // 🔽 전화번호 중복 확인 (회원가입 시 사용)
-public boolean existsByPhone(String phone) {
-  String sql = "SELECT COUNT(*) FROM jobproject_users WHERE users_phone = ?";
-  Integer count = jdbc.queryForObject(sql, Integer.class, phone);
-  return count != null && count > 0;
-}
+  public boolean existsByPhone(String phone) {
+    String sql = "SELECT COUNT(*) FROM jobproject_users WHERE users_phone = ?";
+    Integer count = jdbc.queryForObject(sql, Integer.class, phone);
+    return count != null && count > 0;
+  }
 
   // 🔽 phone까지 저장하도록 수정
   public void save(String email, String encodedPassword, String name, String phone, Role role) {
     String sql =
-        "INSERT INTO jobproject_users "
-            + "(users_email, users_password_hash, users_name, users_phone, users_role) "
-            + "VALUES (?, ?, ?, ?, ?)";
+            "INSERT INTO jobproject_users "
+                    + "(users_email, users_password_hash, users_name, users_phone, users_role) "
+                    + "VALUES (?, ?, ?, ?, ?)";
     jdbc.update(sql, email, encodedPassword, name, phone, role.name());
   }
 
@@ -90,9 +95,21 @@ public boolean existsByPhone(String phone) {
   // users_id로 사용자 상세 정보 조회
   public Optional<UserRow> findById(Long usersId) {
     String sql =
-        "SELECT users_id, users_email, users_password_hash, "
-            + "users_name, users_phone, users_role "  // 🔽 users_phone 추가
-            + "FROM jobproject_users WHERE users_id=?";
+            "SELECT users_id, users_email, users_password_hash, "
+                    + "users_name, users_phone, users_role, "
+                    + "users_created_at, users_updated_at "
+                    + "FROM jobproject_users WHERE users_id=?";
     return jdbc.query(sql, new UserRow(), usersId).stream().findFirst();
   }
+
+  // ========================================================
+  // 2233076 12주차 추가: 내 정보 수정 및 탈퇴 기능 메서드
+  // ========================================================
+
+//회원 탈퇴기능
+  public int deleteByEmail(String email) {
+    String sql = "DELETE FROM jobproject_users WHERE users_email = ?";
+    return jdbc.update(sql, email);
+  }
+
 }

@@ -160,7 +160,22 @@ public class UserService {
         return userRepo.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다."));
     }
+    // =======================================================
+    // 2233076 12주차 추가: 회원 탈퇴 로직
+    // =======================================================
+    @Transactional
+    public void withdraw(String email, String password) {
+        // 1. 현재 사용자 정보 가져오기
+        UserRepo.UserRow user = loadUserRowByEmail(email);
 
+        // 2. 비밀번호 검증
+        if (!passwordEncoder.matches(password, user.pwdHash)) {
+            throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 3. DB에서 삭제
+        userRepo.deleteByEmail(email);
+    }
     public long getAccessTokenTtlMs() {
         return accessTokenTtlMs;
     }

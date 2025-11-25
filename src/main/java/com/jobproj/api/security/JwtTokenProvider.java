@@ -80,15 +80,10 @@ public class JwtTokenProvider {
 
   // ===== 추출 (쿠키 전용) =====
 
-  /** access_token 쿠키만 사용(헤더 경로 제거) */
-  public String resolveAccessToken(HttpServletRequest request) {
+  /** access_token 쿠키에서 토큰 추출 */
+  public String resolveToken(HttpServletRequest request) {
     Cookie c = getCookie(request, ACCESS_TOKEN_COOKIE);
     return (c != null && StringUtils.hasText(c.getValue())) ? c.getValue() : null;
-  }
-
-  /** (호환) 기존 resolveToken은 쿠키 전용 메서드로 위임 */
-  public String resolveToken(HttpServletRequest request) {
-    return resolveAccessToken(request);
   }
 
   /** refresh_token 쿠키만 사용(헤더 경로 제거). 과거 RT 명칭도 허용 */
