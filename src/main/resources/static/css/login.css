@@ -116,12 +116,7 @@ body {
     cursor: pointer;
 }
 
-/* 4. SNS 로그인 */
-.sns-login {
-    font-size: 20px;
-    color: #B9B9B9;
-    margin-bottom: 30px;
-}
+/* SNS Log-in 관련 스타일 삭제됨 */
 
 /* 5. 하단 링크 */
 .links-section {

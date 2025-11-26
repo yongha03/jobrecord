@@ -38,11 +38,11 @@
       </div>
 
       <button type="submit" class="login-button" disabled>Log-in</button>
-      <!-- 융합프로젝트 김태형 11주차 Auth 연동 : 로그인 실패/에러 메시지 표시 영역 (추가) -->
+      <!-- 로그인 실패/에러 메시지 표시 영역 -->
       <p id="login-error" class="error-text" aria-live="polite"></p>
     </form>
 
-    <p class="sns-login">SNS Log-in</p>
+    <!-- SNS Log-in 문구 삭제됨 -->
 
     <div class="links-section">
       <p>계정이 없으신가요? <a href="/auth/signup">회원가입하기</a></p>
@@ -55,7 +55,6 @@
     </p>
   </div>
 
-  <!-- 융합프로젝트 김태형 11주차 비밀번호 찾기 모달 : 로그인 화면 위에 뜨는 작은 창 레이아웃 (수정/김용하 구조 적용) -->
   <div id="reset-modal" class="reset-modal-overlay">
     <div class="reset-modal">
       <div class="reset-modal-header">
@@ -99,7 +98,6 @@
 
           <!-- 인증번호 확인 버튼 -->
           <div class="reset-code-actions">
-            <!-- 융합프로젝트 김태형 11주차 비밀번호 재설정(OpenAPI 스펙 확정) : 인증번호 재발급 버튼 추가 (추가) -->
             <button
               type="button"
               id="resend-code-button"
@@ -128,7 +126,7 @@
               placeholder="8자리 이상, 특수문자 1개 이상"
               required>
           </div>
-          <!-- 융합프로젝트 김태형 11주차 비밀번호 재설정(OpenAPI 스펙 확정) : 새 비밀번호 에러 메시지 영역 (추가) -->
+          <!-- 새 비밀번호 에러 메시지 영역 -->
           <p id="conf-password-error" class="error-text" aria-live="polite"></p>
 
           <!-- 비밀번호 재설정 버튼 -->
