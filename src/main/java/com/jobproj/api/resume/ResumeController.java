@@ -9,9 +9,12 @@ import com.jobproj.api.resume.ResumeDto.UpdateRequest;
 import com.jobproj.api.security.CurrentUser;
 import jakarta.validation.Valid;
 import java.net.URI;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -135,5 +138,38 @@ public class ResumeController {
                 ? ResponseEntity.ok(ApiResponse.ok(null))
                 : ResponseEntity.status(404)
                     .body(ApiResponse.fail("NOT_FOUND", "resume not found"));
+    }
+}
+
+/* ============================================================
+ * 융합프로젝트 김태형 12주차 :
+ * HTML 이력서 화면용 MVC 컨트롤러.
+ *  - /resume/make → 내 초안(이력서 목록) 페이지(templates/resume/Make.html)
+ *  - /resume/edit → 이력서 편집 페이지(templates/resume/Edit.html)
+ *
+ * API(JSON)용 ResumeController와 분리해서,
+ * 뷰 이름만 반환하고 실제 데이터(로그인 사용자 정보 등)는
+ * 프론트 JS(auth.js)가 /api/users/me 같은 엔드포인트를 호출해 채우도록 한다.
+ * ============================================================ */
+@Controller
+@RequestMapping("/resume")
+class ResumePageController {
+
+    private final CurrentUser currentUser;
+
+    public ResumePageController(CurrentUser currentUser) {
+        this.currentUser = currentUser;
+    }
+
+    // 융합프로젝트 김태형 12주차 : 내 이력서 초안 목록 페이지 매핑
+    @GetMapping("/make")
+    public String showMakePage() {
+        return "resume/Make";
+    }
+
+    // 융합프로젝트 김태형 12주차 : 이력서 편집 페이지 매핑
+    @GetMapping("/edit")
+    public String showEditPage() {
+        return "resume/resume-edit";
     }
 }
