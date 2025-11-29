@@ -36,6 +36,8 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
+                // 융합프로젝트 김태형 12주차 : 동일 도메인 내 iframe(이력서 템플릿 미리보기) 허용
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
@@ -45,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/home", "/home.html", "/error").permitAll()
                         .requestMatchers("/user/**", "/mypage").permitAll() // 사용자 페이지 템플릿 접근 허용
 
-                        // 2233076 10주차 수정: /auth/password-reset 삭제
+                        // /auth/password-reset 삭제
                         .requestMatchers("/auth/login", "/auth/signup").permitAll()
 
                         // API 경로

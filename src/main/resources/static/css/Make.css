@@ -199,6 +199,20 @@
     line-height: 1;
 }
 
+a.new-draft-button {
+    text-decoration: none;
+}
+
+a.new-draft-button:hover,
+a.new-draft-button:focus,
+a.new-draft-button:active {
+    text-decoration: none;
+}
+
+.new-draft-button span {
+    text-decoration: none;
+}
+
 .drafts-container {
     display: flex;
     gap: 20px; 

@@ -13,6 +13,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/auth/signup").setViewName("auth/signup");
         // 2233076 12주차 추가 : 내정보 페이지
         registry.addViewController("/mypage").setViewName("user_page/mypage");
+        // 융합프로젝틑 김태형 12주차 : 새 이력서 편집 페이지
+        registry.addViewController("/resume/edit").setViewName("resume/resume-edit");
+
         // 필요 시 /home.html 직접 접근도 열고 싶다면 아래 추가
         // registry.addViewController("/home.html").setViewName("home");
     }
