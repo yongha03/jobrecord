@@ -4,7 +4,7 @@ server:
     max-swallow-size: -1
 
 spring:
-  # 2233076 10주차: 이메일 발송(SMTP) 설정
+  # 이메일 발송(SMTP) 설정
   mail:
     host: smtp.gmail.com
     port: 587
@@ -17,7 +17,7 @@ spring:
           auth: true
           starttls:
             enable: true
-  # 2233076 10주차 : Redis 설정 추가
+  # Redis 설정 추가
   data:
     redis:
       host: 127.0.0.1
