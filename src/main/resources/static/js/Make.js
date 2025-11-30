@@ -116,4 +116,139 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.warn('Auth.logout 또는 .logout-option 요소를 찾을 수 없습니다.');
     }
+
+    // ==========================================
+    // 6. 새 이력서 생성 + 편집 화면 이동
+    // ==========================================
+    //2233073 김용하 12주차 : /api/resumes POST로 새 이력서 생성 후 /resume/edit?resumeId=... 로 이동
+    const newResumeBtn = document.getElementById('new-resume-btn');
+
+    if (newResumeBtn && window.Auth && typeof window.Auth.apiFetch === 'function') {
+        newResumeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // 버튼 중복 클릭 방지용 간단 처리
+            if (newResumeBtn.dataset.loading === 'true') {
+                return;
+            }
+            newResumeBtn.dataset.loading = 'true';
+
+            const originalHtml = newResumeBtn.innerHTML;
+            newResumeBtn.innerHTML = '<span class="plus-icon">+</span> 생성 중...';
+
+            // CreateRequest 형식에 맞게 title / summary / isPublic 전송
+            window.Auth.apiFetch('/api/resumes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: '새 이력서',
+                    summary: '',
+                    isPublic: false
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(body) {
+                if (!body || !body.success || body.data == null) {
+                    throw new Error(body && body.message ? body.message : '이력서 생성 실패');
+                }
+
+                const resumeId = body.data; // Long ID
+                // 생성된 이력서의 편집 화면으로 이동
+                window.location.href = '/resume/edit?resumeId=' + encodeURIComponent(resumeId);
+            })
+            .catch(function(err) {
+                console.error('새 이력서 생성 중 오류:', err);
+                alert('이력서 생성에 실패했습니다.\n' + (err.message || '알 수 없는 오류'));
+            })
+            .finally(function() {
+                newResumeBtn.dataset.loading = 'false';
+                newResumeBtn.innerHTML = originalHtml;
+            });
+        });
+    } else {
+        console.warn('new-resume-btn 또는 Auth.apiFetch를 찾을 수 없습니다.');
+    }
+
+    // ==========================================
+    // 7. 내 이력서 목록 동적 렌더링
+    // ==========================================
+    //2233073 김용하 12주차 : /api/resumes 목록을 조회해서 카드 형태로 그리기
+    const draftsContainer = document.querySelector('.drafts-container');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async function loadMyResumes() {
+        if (!draftsContainer) return;
+        if (!window.Auth || typeof window.Auth.apiFetch !== 'function') {
+            console.warn('Auth.apiFetch가 없어 이력서 목록을 불러오지 않습니다.');
+            return;
+        }
+
+        // 기존에 하드코딩된 "이력서1" 카드 포함 전부 제거
+        draftsContainer.innerHTML = '';
+
+        try {
+            // createdAt 내림차순으로 정렬 (가장 최근 이력서가 앞에 오도록)
+            const res = await window.Auth.apiFetch('/api/resumes?page=0&size=50&sort=createdAt,desc');
+            const body = await res.json();
+
+            if (!body || !body.success || !body.data) {
+                throw new Error(body && body.message ? body.message : '이력서 목록 조회 실패');
+            }
+
+            const page = body.data;
+            const items = Array.isArray(page.content) ? page.content : [];
+
+            if (items.length === 0) {
+                draftsContainer.innerHTML =
+                    '<p class="empty-drafts-text">아직 저장된 이력서가 없습니다. ' +
+                    '상단의 "새 이력서" 버튼을 눌러 첫 이력서를 만들어 보세요.</p>';
+                return;
+            }
+
+            items.forEach(function(resume) {
+                const card = document.createElement('div');
+                card.className = 'draft-card';
+                card.dataset.resumeId = resume.resumeId;
+
+                const title = resume.title || '제목 없음';
+
+                card.innerHTML = `
+                    <div class="draft-card-preview"></div> 
+                    <div class="draft-card-info">
+                        <span class="draft-name">${escapeHtml(title)}</span>
+                    </div>
+                `;
+
+                // 카드 전체 클릭 시 해당 이력서 편집 페이지로 이동
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = card.dataset.resumeId;
+                    if (!id) return;
+                    window.location.href = '/resume/edit?resumeId=' + encodeURIComponent(id);
+                });
+
+                draftsContainer.appendChild(card);
+            });
+        } catch (err) {
+            console.error('이력서 목록 조회 실패:', err);
+            draftsContainer.innerHTML =
+                '<p class="empty-drafts-text">이력서 목록을 불러오지 못했습니다.</p>';
+        }
+    }
+
+    // 페이지 로드 시 이력서 목록 불러오기
+    if (draftsContainer) {
+        loadMyResumes();
+    }
 });

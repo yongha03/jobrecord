@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 융합프로젝트 김태형 12주차 : 좌측 입력 폼과 우측 미리보기를 실시간으로 동기화 + 경력/프로젝트 동적 추가, 템플릿 캐러셀, 내 초안 페이지 이동, 로그인 사용자 정보 표시
 
-    // 융합프로젝트 김태형 12주차 : 이력서 섹션(학력/경력/프로젝트/스킬) DB 저장용 공통 유틸 + 저장 함수들
+    // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸 + 섹션(학력/경력/프로젝트/스킬) 저장 로직
 
-    // Auth 유틸 사용 가능 여부
     const hasAuth = (window.Auth && typeof window.Auth.apiFetch === 'function');
 
-    // URL 쿼리에서 resumeId 추출 (/resume/edit?resumeId=1)
     function getResumeIdFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('resumeId');
@@ -15,7 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resumeId = getResumeIdFromUrl();
 
-    // "2024.01 ~ 2024.06", "2023.03 ~ 재학" => startDate / endDate / isCurrent 로 변환
+    // 융합프로젝트 김태형 12주차 : 이력서 공개 여부(isPublic)와 요약(summary)를 저장해 두는 메타 캐시
+    let resumeMeta = {
+        isPublic: false,
+        summary: ''
+    };
+
     function parsePeriod(text) {
         if (!text) {
             return { startDate: null, endDate: null, isCurrent: false };
@@ -49,10 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return { startDate, endDate, isCurrent };
     }
 
-    // ApiResponse<T> JSON 편하게 쓰기 위한 공통 래퍼
     async function apiJson(path, options = {}) {
         if (!hasAuth) {
-            throw new Error('Auth 유틸이 없습니다. /js/auth.js 가 먼저 로드되어야 합니다.');
+            throw new Error('Auth 유틸이 없습니다. /js/auth.js 로드 여부를 확인하세요.');
         }
 
         const res = await Auth.apiFetch(path, {
@@ -71,14 +73,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return body.data;
     }
 
-    // 학력 섹션 저장 (현재 화면의 1개 학력만 사용)
+    // 융합프로젝트 김태형 12주차 : 이력서 메타데이터(파일명, 공개 여부, 요약) 조회해서 상단에 표시 + 메타 캐시 갱신
+    async function loadResumeMeta(resumeId) {
+        const nameSpan = document.getElementById('file-name-display');
+        if (!resumeId || !hasAuth || !nameSpan) return;
+
+        try {
+            const data = await apiJson(`/api/resumes/${resumeId}`);
+            if (data) {
+                if (typeof data.isPublic === 'boolean') {
+                    resumeMeta.isPublic = data.isPublic;
+                }
+                if (typeof data.summary === 'string') {
+                    resumeMeta.summary = data.summary;
+                }
+                if (data.title) {
+                    nameSpan.textContent = data.title;
+                }
+            }
+        } catch (err) {
+            console.warn('이력서 메타정보 조회 실패(새 이력서일 수 있음):', err);
+        }
+    }
+
+    // 학력 저장
     async function saveEducationSection(resumeId) {
         const school = document.getElementById('input-edu-school')?.value.trim() || '';
         const major = document.getElementById('input-edu-major')?.value.trim() || '';
         const degree = document.getElementById('input-edu-degree')?.value.trim() || '';
         const period = document.getElementById('input-edu-period')?.value.trim() || '';
 
-        // 기존 학력 목록 조회 (페이지는 0, size는 넉넉하게 50)
         const page = await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
         if (page && Array.isArray(page.content)) {
             await Promise.all(
@@ -88,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        // 아무것도 안 적었으면 새로 만들 필요 없음
         if (!school && !major && !degree && !period) {
             return;
         }
@@ -108,9 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 경력 섹션 저장 (동적 추가된 모든 .experience-group 사용)
+    // 경력 저장(동적 여러 개)
     async function saveExperienceSections(resumeId) {
-        // 기존 경력 전부 삭제
         const existing = await apiJson(`/api/resumes/${resumeId}/experiences`);
         if (Array.isArray(existing)) {
             await Promise.all(
@@ -131,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const period = document.getElementById(`input-exp${idx}-period`)?.value.trim() || '';
             const desc = document.getElementById(`input-exp${idx}-desc`)?.value.trim() || '';
 
-            // 완전히 비어 있으면 저장 안 함
             if (!company && !position && !period && !desc) return;
 
             const parsed = parsePeriod(period);
@@ -154,9 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(tasks);
     }
 
-    // 프로젝트 섹션 저장 (동적 추가된 모든 .project-group 사용)
+    // 프로젝트 저장(동적 여러 개)
     async function saveProjectSections(resumeId) {
-        // 기존 프로젝트 전부 삭제
         const existing = await apiJson(`/api/resumes/${resumeId}/projects`);
         if (Array.isArray(existing)) {
             await Promise.all(
@@ -170,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasks = [];
 
         groups.forEach((group) => {
-            const idx = group.dataset.projIndex; // 1,2,...
+            const idx = group.dataset.projIndex;
 
             const name = document.getElementById(`input-proj${idx}-name`)?.value.trim() || '';
             const role = document.getElementById(`input-proj${idx}-role`)?.value.trim() || '';
@@ -202,12 +222,11 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(tasks);
     }
 
-    // 스킬 섹션 저장 (textarea → "," 로 분리, 마스터 스킬 없으면 생성 후 매핑)
+    // 스킬 저장
     async function saveSkillSections(resumeId) {
         const inputEl = document.getElementById('input-skill-list');
         const raw = inputEl ? inputEl.value : '';
 
-        // 기존 이력서-스킬 매핑 삭제
         const existing = await apiJson(`/api/resumes/${resumeId}/skills`);
         if (Array.isArray(existing)) {
             await Promise.all(
@@ -225,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter((s) => s.length > 0);
 
         for (const name of names) {
-            // 1) 스킬 마스터 검색
             const searchRes = await apiJson(`/api/skills?q=${encodeURIComponent(name)}&limit=50`);
             let skillId = null;
 
@@ -238,7 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 2) 못 찾으면 새로 생성
             if (!skillId) {
                 const newId = await apiJson('/api/skills', {
                     method: 'POST',
@@ -247,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillId = newId;
             }
 
-            // 3) 이력서-스킬 매핑 추가/갱신 (숙련도는 일단 0)
             await apiJson(`/api/resumes/${resumeId}/skills/${skillId}`, {
                 method: 'PUT',
                 body: JSON.stringify({ proficiency: 0 })
@@ -255,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 모든 섹션 한 번에 저장
     async function saveAllSections(resumeId) {
         await saveEducationSection(resumeId);
         await saveExperienceSections(resumeId);
@@ -276,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         inputEl.addEventListener('input', handler);
 
-        // 초기 값 반영
         if (inputEl.value) {
             previewEl.textContent = inputEl.value;
         }
@@ -327,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const eduDegreeInput = document.getElementById('input-edu-degree');
     if (eduMajorInput) eduMajorInput.addEventListener('input', updateEducation);
     if (eduDegreeInput) eduDegreeInput.addEventListener('input', updateEducation);
-    updateEducation(); // 초기값 반영
+    updateEducation();
 
     /* ---------- 프로젝트 (역할 + 기술) 병합 ---------- */
 
@@ -362,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProjectSub(num);
     }
 
-    // 프로젝트 1 역할+기술 바인딩
     setupProjectRoleTechBinding(1);
 
     /* ---------- 사진 업로드 미리보기 ---------- */
@@ -371,12 +384,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const photoBox = document.getElementById('preview-photo-box');
 
     if (photoInput && photoBox) {
-        photoInput.addEventListener('change', function (e) {
+        photoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function (event) {
+            reader.onload = function(event) {
                 photoBox.innerHTML = `<img src="${event.target.result}" alt="사진">`;
             };
             reader.readAsDataURL(file);
@@ -414,24 +427,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /* ---------- 로그인 정보 자동 채우기 (더미) ---------- */
+    /* ---------- 로그인 정보 자동 채우기 (실제 유저 정보) ---------- */
 
+    // 융합프로젝트 김태형 12주차 : /api/users/me 응답으로 이름/이메일/전화번호를 기본 정보 입력 칸에 채우기
     const fillBtn = document.getElementById('fill-from-user-btn');
-    if (fillBtn) {
+    if (fillBtn && window.Auth && typeof window.Auth.fetchMe === 'function') {
         fillBtn.addEventListener('click', () => {
-            const nameEl = document.getElementById('input-name');
-            const emailEl = document.getElementById('input-email');
-            const phoneEl = document.getElementById('input-phone');
+            Auth.fetchMe()
+                .then((user) => {
+                    if (!user) return;
 
-            if (!nameEl || !emailEl || !phoneEl) return;
+                    const nameEl = document.getElementById('input-name');
+                    const emailEl = document.getElementById('input-email');
+                    const phoneEl = document.getElementById('input-phone');
 
-            nameEl.value = '홍길동';
-            emailEl.value = 'user@example.com';
-            phoneEl.value = '010-1234-5678';
-
-            nameEl.dispatchEvent(new Event('input'));
-            emailEl.dispatchEvent(new Event('input'));
-            phoneEl.dispatchEvent(new Event('input'));
+                    if (nameEl && user.name) {
+                        nameEl.value = user.name;
+                        nameEl.dispatchEvent(new Event('input'));
+                    }
+                    if (emailEl && user.email) {
+                        emailEl.value = user.email;
+                        emailEl.dispatchEvent(new Event('input'));
+                    }
+                    if (phoneEl && user.phone) {
+                        phoneEl.value = user.phone;
+                        phoneEl.dispatchEvent(new Event('input'));
+                    }
+                })
+                .catch((err) => {
+                    console.error('로그인 정보 자동 채우기 실패:', err);
+                    alert('로그인 정보를 가져오지 못했습니다.');
+                });
         });
     }
 
@@ -457,7 +483,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const basePreview = previewExperienceList.querySelector('.resume-item[data-exp-index="1"]');
             if (!baseGroup || !basePreview) return;
 
-            // 폼 쪽 복제
             const groupClone = baseGroup.cloneNode(true);
             groupClone.dataset.expIndex = String(newIndex);
 
@@ -481,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             experienceContainer.appendChild(groupClone);
 
-            // 미리보기 쪽 복제
             const previewClone = basePreview.cloneNode(true);
             previewClone.dataset.expIndex = String(newIndex);
 
@@ -497,7 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             previewExperienceList.appendChild(previewClone);
 
-            // 새로 만들어진 경력 필드 바인딩
             bindField(`input-exp${newIndex}-company`, `preview-exp${newIndex}-company`);
             bindField(`input-exp${newIndex}-position`, `preview-exp${newIndex}-position`);
             bindField(`input-exp${newIndex}-period`, `preview-exp${newIndex}-period`);
@@ -529,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const basePreview = previewProjectList.querySelector('.resume-item[data-proj-index="1"]');
             if (!baseGroup || !basePreview) return;
 
-            // 폼 쪽 복제
             const groupClone = baseGroup.cloneNode(true);
             groupClone.dataset.projIndex = String(newIndex);
 
@@ -553,7 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             projectContainer.appendChild(groupClone);
 
-            // 미리보기 쪽 복제
             const previewClone = basePreview.cloneNode(true);
             previewClone.dataset.projIndex = String(newIndex);
 
@@ -569,7 +590,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             previewProjectList.appendChild(previewClone);
 
-            // 새로 만들어진 프로젝트 필드 바인딩
             bindField(`input-proj${newIndex}-name`, `preview-proj${newIndex}-name`);
             bindField(`input-proj${newIndex}-period`, `preview-proj${newIndex}-period`);
             bindField(`input-proj${newIndex}-desc`, `preview-proj${newIndex}-desc`);
@@ -581,9 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ---------- 템플릿 캐러셀 (<, >, 점 6개) ---------- */
 
-    // 융합프로젝트 김태형 12주차 : 6개의 이력서 템플릿을 좌우 버튼과 점(인디케이터)로 전환하는 기능
     const TEMPLATE_COUNT = 6;
-    let currentTemplateIndex = 0; // 0 ~ 5
+    let currentTemplateIndex = 0;
 
     const templateIndicator = document.getElementById('template-indicator');
     const prevTemplateBtn = document.getElementById('prev-template');
@@ -634,11 +653,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    applyTemplate(0); // 초기 템플릿 1번
+    applyTemplate(0);
 
     /* ---------- 이력서 목록(내 초안) 페이지로 이동 ---------- */
 
-    // 융합프로젝트 김태형 12주차 : 상단 "이력서 목록으로" 버튼 클릭 시 내 초안 리스트(Make.html)로 이동
     const backToListBtn = document.getElementById('back-to-list-btn');
     if (backToListBtn) {
         backToListBtn.addEventListener('click', () => {
@@ -646,18 +664,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 이력서 저장(학력/경력/프로젝트/스킬 → DB) ---------- */
+    /* ---------- 파일 이름 변경 버튼 ---------- */
 
-    // 융합프로젝트 김태형 12주차 : 상단 "저장하기" 버튼 클릭 시 현재 폼 입력값을 섹션 API로 저장
+    // 융합프로젝트 김태형 12주차 : 상단 "파일 이름 변경" 버튼으로 제목 PATCH (공개 여부/요약도 함께 전송)
+    const renameBtn = document.getElementById('rename-file-btn');
+    if (renameBtn && resumeId && hasAuth) {
+        renameBtn.addEventListener('click', async () => {
+            const nameSpan = document.getElementById('file-name-display');
+            const current = (nameSpan?.textContent || '새 이력서').trim();
+
+            const next = window.prompt('새 파일 이름을 입력하세요.', current);
+            if (next === null) return; // 취소
+            const trimmed = next.trim();
+            if (!trimmed) {
+                alert('파일 이름을 비울 수 없습니다.');
+                return;
+            }
+
+            try {
+                await apiJson(`/api/resumes/${resumeId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        title: trimmed,
+                        isPublic: resumeMeta.isPublic ?? false,
+                        summary: resumeMeta.summary ?? ''
+                    })
+                });
+                if (nameSpan) {
+                    nameSpan.textContent = trimmed;
+                }
+                alert('파일 이름이 변경되었습니다.');
+            } catch (err) {
+                console.error('파일 이름 변경 실패:', err);
+                alert('파일 이름 변경 중 오류가 발생했습니다.\n' + err.message);
+            }
+        });
+    }
+
+    /* ---------- 상단 "저장하기" 버튼 ---------- */
+
+    // 융합프로젝트 김태형 12주차 : 섹션만 저장(페이지는 그대로 유지)
     const saveFileBtn = document.getElementById('save-file-btn');
     if (saveFileBtn) {
         saveFileBtn.addEventListener('click', async () => {
             if (!resumeId) {
-                alert('이력서 ID가 없습니다. /resume/edit?resumeId=1 형태로 접속해야 합니다.');
+                alert('이력서 ID가 없습니다. /resume/edit?resumeId=... 형태로 접근해야 합니다.');
                 return;
             }
             if (!hasAuth) {
-                alert('Auth 유틸을 찾을 수 없습니다. /js/auth.js 로드 여부를 확인해주세요.');
+                alert('Auth 유틸을 찾을 수 없습니다.');
                 return;
             }
 
@@ -667,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await saveAllSections(resumeId);
-                alert('이력서 섹션이 저장되었습니다.');
+                alert('이력서 내용이 저장되었습니다.');
             } catch (err) {
                 console.error(err);
                 alert('저장 중 오류가 발생했습니다.\n' + err.message);
@@ -678,9 +733,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /* ---------- 우측 하단 "이력서 생성하기" 버튼 ---------- */
+
+    // 융합프로젝트 김태형 12주차 : 파일 이름 확인 → 제목 PATCH(공개 여부/요약 포함) → 섹션 저장 후 /resume/make 로 이동
+    const createResumeBtn = document.querySelector('.create-btn');
+    if (createResumeBtn) {
+        createResumeBtn.addEventListener('click', async () => {
+            if (!resumeId) {
+                alert('이력서 ID가 없습니다.');
+                return;
+            }
+            if (!hasAuth) {
+                alert('Auth 유틸을 찾을 수 없습니다.');
+                return;
+            }
+
+            const nameSpan = document.getElementById('file-name-display');
+            const current = (nameSpan?.textContent || '새 이력서').trim();
+            const answer = window.prompt('저장할 이력서 이름을 입력하세요.', current);
+            if (answer === null) return;
+            const title = answer.trim();
+            if (!title) {
+                alert('파일 이름은 비어 있을 수 없습니다.');
+                return;
+            }
+
+            const originalText = createResumeBtn.textContent;
+            createResumeBtn.disabled = true;
+            createResumeBtn.textContent = '저장 중...';
+
+            try {
+                // 제목 및 메타 업데이트
+                await apiJson(`/api/resumes/${resumeId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        title,
+                        isPublic: resumeMeta.isPublic ?? false,
+                        summary: resumeMeta.summary ?? ''
+                    })
+                });
+
+                if (nameSpan) {
+                    nameSpan.textContent = title;
+                }
+
+                // 섹션 저장
+                await saveAllSections(resumeId);
+
+                // 내 초안 페이지로 이동
+                window.location.href = '/resume/make';
+            } catch (err) {
+                console.error('이력서 생성(최종 저장) 중 오류:', err);
+                alert('이력서 저장 중 오류가 발생했습니다.\n' + err.message);
+            } finally {
+                createResumeBtn.disabled = false;
+                createResumeBtn.textContent = originalText;
+            }
+        });
+    }
+
     /* ---------- 로그인한 사용자 정보 우측 상단 표시 ---------- */
 
-    // 융합프로젝트 김태형 12주차 : 백엔드에서 현재 로그인한 사용자 정보를 가져와 상단 우측에 이름/이메일 출력
     function loadCurrentUserInfo() {
         const nameEl = document.getElementById('current-user-name');
         const emailEl = document.getElementById('current-user-email');
@@ -698,10 +811,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 })
                 .catch(() => {
-                    // 실패하면 기본 더미 텍스트(홍길동 / user@example.com) 유지
+                    // 실패시 기본 더미 텍스트 유지
                 });
         }
     }
 
     loadCurrentUserInfo();
+
+    // 페이지 들어올 때 이력서 제목(파일명)과 메타도 한 번 조회
+    if (resumeId) {
+        loadResumeMeta(resumeId);
+    }
 });
