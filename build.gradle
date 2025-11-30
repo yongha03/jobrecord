@@ -43,8 +43,7 @@ dependencies {
     // Spring Boot Data Redis 2233076 10주차 추가
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
-
-    // ✅ View (templates/home.html 렌더링용)
+    // ✅ View (templates/*.html 렌더링용)
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
     // ✅ Swagger (Spring Boot 3.3.x 호환)
@@ -69,6 +68,9 @@ dependencies {
     // ✅ Devtools (개발 편의)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // 융합프로젝트 김태형 12주차 : HTML 템플릿을 PDF로 변환(Flying Saucer + OpenPDF)
+    implementation 'org.xhtmlrenderer:flying-saucer-pdf-openpdf:9.1.22'
+
     // ✅ Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -76,6 +78,7 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // 경고 보기용 컴파일 옵션
     options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
 }
 

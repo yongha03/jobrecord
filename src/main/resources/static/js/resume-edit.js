@@ -1,8 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 융합프로젝트 김태형 12주차 : 좌측 입력 폼과 우측 미리보기를 실시간으로 동기화 + 경력/프로젝트 동적 추가, 템플릿 캐러셀, 내 초안 페이지 이동, 로그인 사용자 정보 표시
+    // 융합프로젝트 김태형 12주차 :
+    //  - 좌측 입력 폼과 우측 미리보기를 실시간으로 동기화
+    //  - 경력/프로젝트 동적 추가, 템플릿 캐러셀
+    //  - 내 초안 페이지 이동, 로그인 사용자 정보 표시
+    //  - 이력서(학력/경력/프로젝트/스킬) 저장 + DB 값 다시 불러오기
 
-    // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸 + 섹션(학력/경력/프로젝트/스킬) 저장 로직
-
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸
+    // ------------------------------------------------------------
     const hasAuth = (window.Auth && typeof window.Auth.apiFetch === 'function');
 
     function getResumeIdFromUrl() {
@@ -13,12 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resumeId = getResumeIdFromUrl();
 
-    // 융합프로젝트 김태형 12주차 : 이력서 공개 여부(isPublic)와 요약(summary)를 저장해 두는 메타 캐시
+    // 융합프로젝트 김태형 12주차 :
+    //  이력서 메타데이터(공개 여부, 요약)를 임시로 들고 있는 캐시
     let resumeMeta = {
         isPublic: false,
         summary: ''
     };
 
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 : "2024.01 ~ 2024.06 / 재직" ⇄ 날짜 파싱/포맷
+    // ------------------------------------------------------------
     function parsePeriod(text) {
         if (!text) {
             return { startDate: null, endDate: null, isCurrent: false };
@@ -52,6 +61,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return { startDate, endDate, isCurrent };
     }
 
+    // 융합프로젝트 김태형 12주차 : DB에 있는 startDate/endDate를 "YYYY.MM ~ 재직" 형식으로 변환
+    function formatPeriod(startDate, endDate, isCurrent) {
+        function toYm(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length < 2) return dateStr;
+            return `${parts[0]}.${parts[1]}`;
+        }
+
+        const startText = toYm(startDate);
+        let endText = '';
+
+        if (isCurrent) {
+            endText = '재학';
+        } else {
+            endText = toYm(endDate);
+        }
+
+        if (!startText && !endText) return '';
+        if (!startText) return endText;
+        if (!endText) return startText;
+        return `${startText} ~ ${endText}`;
+    }
+
+    // ------------------------------------------------------------
+    // 공통 API JSON 래퍼
+    // ------------------------------------------------------------
     async function apiJson(path, options = {}) {
         if (!hasAuth) {
             throw new Error('Auth 유틸이 없습니다. /js/auth.js 로드 여부를 확인하세요.');
@@ -73,30 +109,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return body.data;
     }
 
-    // 융합프로젝트 김태형 12주차 : 이력서 메타데이터(파일명, 공개 여부, 요약) 조회해서 상단에 표시 + 메타 캐시 갱신
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 :
+    //  이력서 메타데이터(파일명, 공개 여부, 요약) 조회해서 상단/요약 입력칸에 반영
+    // ------------------------------------------------------------
     async function loadResumeMeta(resumeId) {
         const nameSpan = document.getElementById('file-name-display');
-        if (!resumeId || !hasAuth || !nameSpan) return;
+        const summaryInput = document.getElementById('input-summary');
+        if (!resumeId || !hasAuth) return;
 
         try {
             const data = await apiJson(`/api/resumes/${resumeId}`);
-            if (data) {
-                if (typeof data.isPublic === 'boolean') {
-                    resumeMeta.isPublic = data.isPublic;
+            if (!data) return;
+
+            if (typeof data.isPublic === 'boolean') {
+                resumeMeta.isPublic = data.isPublic;
+            }
+            if (typeof data.summary === 'string') {
+                resumeMeta.summary = data.summary;
+                if (summaryInput) {
+                    summaryInput.value = data.summary;
+                    summaryInput.dispatchEvent(new Event('input'));
                 }
-                if (typeof data.summary === 'string') {
-                    resumeMeta.summary = data.summary;
-                }
-                if (data.title) {
-                    nameSpan.textContent = data.title;
-                }
+            }
+            if (data.title && nameSpan) {
+                nameSpan.textContent = data.title;
             }
         } catch (err) {
             console.warn('이력서 메타정보 조회 실패(새 이력서일 수 있음):', err);
         }
     }
 
-    // 학력 저장
+    // ------------------------------------------------------------
+    // 학력/경력/프로젝트/스킬 저장 로직 (이미 있던 부분)
+    // ------------------------------------------------------------
+
     async function saveEducationSection(resumeId) {
         const school = document.getElementById('input-edu-school')?.value.trim() || '';
         const major = document.getElementById('input-edu-major')?.value.trim() || '';
@@ -131,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 경력 저장(동적 여러 개)
     async function saveExperienceSections(resumeId) {
         const existing = await apiJson(`/api/resumes/${resumeId}/experiences`);
         if (Array.isArray(existing)) {
@@ -146,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasks = [];
 
         groups.forEach((group) => {
-            const idx = group.dataset.expIndex; // 1,2,...
+            const idx = group.dataset.expIndex;
 
             const company = document.getElementById(`input-exp${idx}-company`)?.value.trim() || '';
             const position = document.getElementById(`input-exp${idx}-position`)?.value.trim() || '';
@@ -175,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(tasks);
     }
 
-    // 프로젝트 저장(동적 여러 개)
     async function saveProjectSections(resumeId) {
         const existing = await apiJson(`/api/resumes/${resumeId}/projects`);
         if (Array.isArray(existing)) {
@@ -222,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(tasks);
     }
 
-    // 스킬 저장
     async function saveSkillSections(resumeId) {
         const inputEl = document.getElementById('input-skill-list');
         const raw = inputEl ? inputEl.value : '';
@@ -278,8 +322,169 @@ document.addEventListener('DOMContentLoaded', () => {
         await saveSkillSections(resumeId);
     }
 
-    /* ---------- 공통: 입력값 ↔ 미리보기 바인딩 ---------- */
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 :
+    //  DB에 저장된 학력/경력/프로젝트/스킬을 불러와서 입력칸 + 미리보기에 채우는 로직
+    // ------------------------------------------------------------
+    async function loadEducationSectionFromApi(resumeId) {
+        try {
+            const page = await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
+            if (!page || !Array.isArray(page.content) || page.content.length === 0) return;
 
+            const edu = page.content[0];
+
+            const schoolInput = document.getElementById('input-edu-school');
+            const majorInput = document.getElementById('input-edu-major');
+            const degreeInput = document.getElementById('input-edu-degree');
+            const periodInput = document.getElementById('input-edu-period');
+
+            if (schoolInput && edu.schoolName) {
+                schoolInput.value = edu.schoolName;
+                schoolInput.dispatchEvent(new Event('input'));
+            }
+            if (majorInput && edu.major) {
+                majorInput.value = edu.major;
+                majorInput.dispatchEvent(new Event('input'));
+            }
+            if (degreeInput && edu.degree) {
+                degreeInput.value = edu.degree;
+                degreeInput.dispatchEvent(new Event('input'));
+            }
+
+            const periodText = formatPeriod(edu.startDate, edu.endDate, edu.current === true);
+            if (periodInput && periodText) {
+                periodInput.value = periodText;
+                periodInput.dispatchEvent(new Event('input'));
+            }
+        } catch (err) {
+            console.warn('학력 섹션 로딩 실패:', err);
+        }
+    }
+
+    async function loadExperienceSectionsFromApi(resumeId) {
+        try {
+            const list = await apiJson(`/api/resumes/${resumeId}/experiences`);
+            if (!Array.isArray(list) || list.length === 0) return;
+
+            // 기본 1개는 이미 있으므로, 나머지 개수만큼 버튼 클릭으로 동적 생성
+            for (let i = 2; i <= list.length; i++) {
+                if (window.addExperienceBtnClick) {
+                    window.addExperienceBtnClick(); // 아래에서 전역 함수로 노출
+                }
+            }
+
+            list.forEach((exp, index) => {
+                const idx = index + 1;
+
+                const companyInput = document.getElementById(`input-exp${idx}-company`);
+                const positionInput = document.getElementById(`input-exp${idx}-position`);
+                const periodInput = document.getElementById(`input-exp${idx}-period`);
+                const descInput = document.getElementById(`input-exp${idx}-desc`);
+
+                const periodText = formatPeriod(
+                    exp.startDate,
+                    exp.endDate,
+                    (exp.isCurrent ?? exp.current) === true
+                );
+
+                if (companyInput && exp.companyName) {
+                    companyInput.value = exp.companyName;
+                    companyInput.dispatchEvent(new Event('input'));
+                }
+                if (positionInput && exp.positionTitle) {
+                    positionInput.value = exp.positionTitle;
+                    positionInput.dispatchEvent(new Event('input'));
+                }
+                if (periodInput && periodText) {
+                    periodInput.value = periodText;
+                    periodInput.dispatchEvent(new Event('input'));
+                }
+                if (descInput && exp.description) {
+                    descInput.value = exp.description;
+                    descInput.dispatchEvent(new Event('input'));
+                }
+            });
+        } catch (err) {
+            console.warn('경력 섹션 로딩 실패:', err);
+        }
+    }
+
+    async function loadProjectSectionsFromApi(resumeId) {
+        try {
+            const list = await apiJson(`/api/resumes/${resumeId}/projects`);
+            if (!Array.isArray(list) || list.length === 0) return;
+
+            for (let i = 2; i <= list.length; i++) {
+                if (window.addProjectBtnClick) {
+                    window.addProjectBtnClick();
+                }
+            }
+
+            list.forEach((proj, index) => {
+                const idx = index + 1;
+
+                const nameInput = document.getElementById(`input-proj${idx}-name`);
+                const roleInput = document.getElementById(`input-proj${idx}-role`);
+                const periodInput = document.getElementById(`input-proj${idx}-period`);
+                const techInput = document.getElementById(`input-proj${idx}-tech`);
+                const descInput = document.getElementById(`input-proj${idx}-desc`);
+
+                const periodText = formatPeriod(
+                    proj.startDate,
+                    proj.endDate,
+                    (proj.isCurrent ?? proj.current) === true
+                );
+
+                if (nameInput && proj.name) {
+                    nameInput.value = proj.name;
+                    nameInput.dispatchEvent(new Event('input'));
+                }
+                if (roleInput && proj.role) {
+                    roleInput.value = proj.role;
+                    roleInput.dispatchEvent(new Event('input'));
+                }
+                if (periodInput && periodText) {
+                    periodInput.value = periodText;
+                    periodInput.dispatchEvent(new Event('input'));
+                }
+                if (techInput && proj.techStack) {
+                    techInput.value = proj.techStack;
+                    techInput.dispatchEvent(new Event('input'));
+                }
+                if (descInput && proj.summary) {
+                    descInput.value = proj.summary;
+                    descInput.dispatchEvent(new Event('input'));
+                }
+            });
+        } catch (err) {
+            console.warn('프로젝트 섹션 로딩 실패:', err);
+        }
+    }
+
+    async function loadSkillSectionsFromApi(resumeId) {
+        try {
+            const inputEl = document.getElementById('input-skill-list');
+            if (!inputEl) return;
+
+            const list = await apiJson(`/api/resumes/${resumeId}/skills`);
+            if (!Array.isArray(list) || list.length === 0) return;
+
+            const names = list
+                .map((s) => s.name || s.skillName || '')
+                .filter((s) => s && s.length > 0);
+
+            if (names.length > 0) {
+                inputEl.value = names.join(', ');
+                inputEl.dispatchEvent(new Event('input'));
+            }
+        } catch (err) {
+            console.warn('스킬 섹션 로딩 실패:', err);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // 공통: 입력값 ↔ 미리보기 바인딩
+    // ------------------------------------------------------------
     function bindField(inputId, previewId) {
         const inputEl = document.getElementById(inputId);
         const previewEl = document.getElementById(previewId);
@@ -303,6 +508,14 @@ document.addEventListener('DOMContentLoaded', () => {
     bindField('input-birth', 'preview-birth');
     bindField('input-summary', 'preview-summary');
 
+    // 요약 입력 시 resumeMeta.summary 도 같이 갱신
+    const summaryInputEl = document.getElementById('input-summary');
+    if (summaryInputEl) {
+        summaryInputEl.addEventListener('input', (e) => {
+            resumeMeta.summary = e.target.value || '';
+        });
+    }
+
     // 학력
     bindField('input-edu-school', 'preview-edu-school');
     bindField('input-edu-period', 'preview-edu-period');
@@ -318,8 +531,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bindField('input-proj1-period', 'preview-proj1-period');
     bindField('input-proj1-desc', 'preview-proj1-desc');
 
-    /* ---------- 학력 (전공 + 학위) 병합 ---------- */
-
+    // ------------------------------------------------------------
+    // 학력 (전공 + 학위) 병합
+    // ------------------------------------------------------------
     function updateEducation() {
         const majorEl = document.getElementById('input-edu-major');
         const degreeEl = document.getElementById('input-edu-degree');
@@ -343,8 +557,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (eduDegreeInput) eduDegreeInput.addEventListener('input', updateEducation);
     updateEducation();
 
-    /* ---------- 프로젝트 (역할 + 기술) 병합 ---------- */
-
+    // ------------------------------------------------------------
+    // 프로젝트 (역할 + 기술) 병합
+    // ------------------------------------------------------------
     function updateProjectSub(num) {
         const roleEl = document.getElementById(`input-proj${num}-role`);
         const techEl = document.getElementById(`input-proj${num}-tech`);
@@ -378,8 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupProjectRoleTechBinding(1);
 
-    /* ---------- 사진 업로드 미리보기 ---------- */
-
+    // ------------------------------------------------------------
+    // 사진 업로드 미리보기
+    // ------------------------------------------------------------
     const photoInput = document.getElementById('input-photo');
     const photoBox = document.getElementById('preview-photo-box');
 
@@ -396,8 +612,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 기술 스택 (쉼표 → 태그) ---------- */
-
+    // ------------------------------------------------------------
+    // 기술 스택 (쉼표 → 태그)
+    // ------------------------------------------------------------
     const skillInput = document.getElementById('input-skill-list');
     const skillListPreview = document.getElementById('preview-skill-list');
 
@@ -427,9 +644,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /* ---------- 로그인 정보 자동 채우기 (실제 유저 정보) ---------- */
-
-    // 융합프로젝트 김태형 12주차 : /api/users/me 응답으로 이름/이메일/전화번호를 기본 정보 입력 칸에 채우기
+    // ------------------------------------------------------------
+    // 로그인 정보 자동 채우기 (실제 유저 정보)
+    // ------------------------------------------------------------
     const fillBtn = document.getElementById('fill-from-user-btn');
     if (fillBtn && window.Auth && typeof window.Auth.fetchMe === 'function') {
         fillBtn.addEventListener('click', () => {
@@ -461,8 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 경력 추가 동적 UI ---------- */
-
+    // ------------------------------------------------------------
+    // 경력 추가 동적 UI (+ 전역 함수로 노출해서 로딩 시 재사용)
+    // ------------------------------------------------------------
     const MAX_EXP = 5;
     let expCount = 1;
 
@@ -471,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addExperienceBtn = document.getElementById('add-experience-btn');
 
     if (experienceContainer && previewExperienceList && addExperienceBtn) {
-        addExperienceBtn.addEventListener('click', () => {
+        const addExperience = () => {
             if (expCount >= MAX_EXP) {
                 alert(`경력은 최대 ${MAX_EXP}개까지 추가할 수 있습니다.`);
                 return;
@@ -527,11 +745,17 @@ document.addEventListener('DOMContentLoaded', () => {
             bindField(`input-exp${newIndex}-desc`, `preview-exp${newIndex}-desc`);
 
             expCount = newIndex;
-        });
+        };
+
+        addExperienceBtn.addEventListener('click', addExperience);
+
+        // 융합프로젝트 김태형 12주차 : 로딩 시에도 호출할 수 있도록 전역 함수로 노출
+        window.addExperienceBtnClick = addExperience;
     }
 
-    /* ---------- 프로젝트 추가 동적 UI ---------- */
-
+    // ------------------------------------------------------------
+    // 프로젝트 추가 동적 UI (+ 전역 함수)
+    // ------------------------------------------------------------
     const MAX_PROJ = 5;
     let projCount = 1;
 
@@ -540,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addProjectBtn = document.getElementById('add-project-btn');
 
     if (projectContainer && previewProjectList && addProjectBtn) {
-        addProjectBtn.addEventListener('click', () => {
+        const addProject = () => {
             if (projCount >= MAX_PROJ) {
                 alert(`프로젝트는 최대 ${MAX_PROJ}개까지 추가할 수 있습니다.`);
                 return;
@@ -548,8 +772,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newIndex = projCount + 1;
 
-            const baseGroup = projectContainer.querySelector('.project-group[data-proj-index="1"]');
-            const basePreview = previewProjectList.querySelector('.resume-item[data-proj-index="1"]');
+            const baseGroup =
+                projectContainer.querySelector('.project-group[data-proj-index="1"]');
+            const basePreview =
+                previewProjectList.querySelector('.resume-item[data-proj-index="1"]');
             if (!baseGroup || !basePreview) return;
 
             const groupClone = baseGroup.cloneNode(true);
@@ -596,11 +822,17 @@ document.addEventListener('DOMContentLoaded', () => {
             setupProjectRoleTechBinding(newIndex);
 
             projCount = newIndex;
-        });
+        };
+
+        addProjectBtn.addEventListener('click', addProject);
+
+        // 융합프로젝트 김태형 12주차 : 로딩 시에도 호출할 수 있도록 전역 함수로 노출
+        window.addProjectBtnClick = addProject;
     }
 
-    /* ---------- 템플릿 캐러셀 (<, >, 점 6개) ---------- */
-
+    // ------------------------------------------------------------
+    // 템플릿 캐러셀 (<, >, 점 6개)
+    // ------------------------------------------------------------
     const TEMPLATE_COUNT = 6;
     let currentTemplateIndex = 0;
 
@@ -655,8 +887,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyTemplate(0);
 
-    /* ---------- 이력서 목록(내 초안) 페이지로 이동 ---------- */
-
+    // ------------------------------------------------------------
+    // 이력서 목록(내 초안) 페이지로 이동
+    // ------------------------------------------------------------
     const backToListBtn = document.getElementById('back-to-list-btn');
     if (backToListBtn) {
         backToListBtn.addEventListener('click', () => {
@@ -664,9 +897,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 파일 이름 변경 버튼 ---------- */
-
-    // 융합프로젝트 김태형 12주차 : 상단 "파일 이름 변경" 버튼으로 제목 PATCH (공개 여부/요약도 함께 전송)
+    // ------------------------------------------------------------
+    // 파일 이름 변경 버튼
+    // ------------------------------------------------------------
     const renameBtn = document.getElementById('rename-file-btn');
     if (renameBtn && resumeId && hasAuth) {
         renameBtn.addEventListener('click', async () => {
@@ -674,7 +907,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const current = (nameSpan?.textContent || '새 이력서').trim();
 
             const next = window.prompt('새 파일 이름을 입력하세요.', current);
-            if (next === null) return; // 취소
+            if (next === null) return;
             const trimmed = next.trim();
             if (!trimmed) {
                 alert('파일 이름을 비울 수 없습니다.');
@@ -701,9 +934,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 상단 "저장하기" 버튼 ---------- */
-
-    // 융합프로젝트 김태형 12주차 : 섹션만 저장(페이지는 그대로 유지)
+    // ------------------------------------------------------------
+    // 상단 "저장하기" 버튼 (페이지는 그대로 두고 섹션만 저장)
+    // ------------------------------------------------------------
     const saveFileBtn = document.getElementById('save-file-btn');
     if (saveFileBtn) {
         saveFileBtn.addEventListener('click', async () => {
@@ -733,9 +966,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 우측 하단 "이력서 생성하기" 버튼 ---------- */
-
-    // 융합프로젝트 김태형 12주차 : 파일 이름 확인 → 제목 PATCH(공개 여부/요약 포함) → 섹션 저장 후 /resume/make 로 이동
+    // ------------------------------------------------------------
+    // 우측 하단 "이력서 생성하기" 버튼
+    //  - 제목 PATCH + 섹션 저장 후 /resume/make 로 이동
+    // ------------------------------------------------------------
     const createResumeBtn = document.querySelector('.create-btn');
     if (createResumeBtn) {
         createResumeBtn.addEventListener('click', async () => {
@@ -763,7 +997,6 @@ document.addEventListener('DOMContentLoaded', () => {
             createResumeBtn.textContent = '저장 중...';
 
             try {
-                // 제목 및 메타 업데이트
                 await apiJson(`/api/resumes/${resumeId}`, {
                     method: 'PATCH',
                     body: JSON.stringify({
@@ -777,10 +1010,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     nameSpan.textContent = title;
                 }
 
-                // 섹션 저장
                 await saveAllSections(resumeId);
 
-                // 내 초안 페이지로 이동
                 window.location.href = '/resume/make';
             } catch (err) {
                 console.error('이력서 생성(최종 저장) 중 오류:', err);
@@ -792,8 +1023,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------- 로그인한 사용자 정보 우측 상단 표시 ---------- */
-
+    // ------------------------------------------------------------
+    // 로그인한 사용자 정보 우측 상단 표시
+    // ------------------------------------------------------------
     function loadCurrentUserInfo() {
         const nameEl = document.getElementById('current-user-name');
         const emailEl = document.getElementById('current-user-email');
@@ -818,8 +1050,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadCurrentUserInfo();
 
-    // 페이지 들어올 때 이력서 제목(파일명)과 메타도 한 번 조회
+    // ------------------------------------------------------------
+    // 페이지 진입 시: 이력서 메타 + 각 섹션을 DB에서 읽어와서 화면에 채우기
+    // ------------------------------------------------------------
     if (resumeId) {
         loadResumeMeta(resumeId);
+        loadEducationSectionFromApi(resumeId);
+        loadExperienceSectionsFromApi(resumeId);
+        loadProjectSectionsFromApi(resumeId);
+        loadSkillSectionsFromApi(resumeId);
     }
 });

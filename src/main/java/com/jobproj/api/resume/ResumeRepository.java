@@ -39,7 +39,8 @@ public class ResumeRepository {
   public Long create(Long usersId, CreateRequest req) {
     String sql =
         """
-      INSERT INTO resume (users_id, title, summary, is_public, resume_created_at, resume_updated_at)
+      INSERT INTO jobproject_resume
+        (users_id, title, summary, is_public, resume_created_at, resume_updated_at)
       VALUES (:usersId, :title, :summary, :isPublic, :now, :now)
       """;
     var params =
@@ -61,7 +62,7 @@ public class ResumeRepository {
           """
         SELECT resume_id, users_id, title, summary, is_public,
                resume_created_at, resume_updated_at
-        FROM resume
+        FROM jobproject_resume
         WHERE resume_id = :id
         """;
       return Optional.ofNullable(jdbc.queryForObject(sql, Map.of("id", id), MAPPER));
@@ -77,10 +78,12 @@ public class ResumeRepository {
           """
         SELECT resume_id, users_id, title, summary, is_public,
                resume_created_at, resume_updated_at
-        FROM resume
+        FROM jobproject_resume
         WHERE resume_id = :id AND users_id = :usersId
         """;
-      var params = new MapSqlParameterSource().addValue("id", id).addValue("usersId", usersId);
+      var params = new MapSqlParameterSource()
+          .addValue("id", id)
+          .addValue("usersId", usersId);
       return Optional.ofNullable(jdbc.queryForObject(sql, params, MAPPER));
     } catch (EmptyResultDataAccessException e) {
       return Optional.empty();
@@ -90,7 +93,8 @@ public class ResumeRepository {
   // owner 빠른 확인(404/403 분기용)
   public Optional<Long> findOwnerId(Long resumeId) {
     try {
-      String sql = "SELECT users_id FROM resume WHERE resume_id = :id";
+      String sql =
+          "SELECT users_id FROM jobproject_resume WHERE resume_id = :id";
       Long uid = jdbc.queryForObject(sql, Map.of("id", resumeId), Long.class);
       return Optional.ofNullable(uid);
     } catch (EmptyResultDataAccessException e) {
@@ -102,7 +106,7 @@ public class ResumeRepository {
   public int update(Long id, UpdateRequest req) {
     String sql =
         """
-      UPDATE resume
+      UPDATE jobproject_resume
          SET title = :title,
              summary = :summary,
              is_public = :isPublic,
@@ -120,7 +124,8 @@ public class ResumeRepository {
   }
 
   public int delete(Long id) {
-    String sql = "DELETE FROM resume WHERE resume_id = :id";
+    String sql =
+        "DELETE FROM jobproject_resume WHERE resume_id = :id";
     return jdbc.update(sql, Map.of("id", id));
   }
 
@@ -128,7 +133,7 @@ public class ResumeRepository {
   public int updateByOwner(Long id, Long usersId, UpdateRequest req) {
     String sql =
         """
-      UPDATE resume
+      UPDATE jobproject_resume
          SET title = :title,
              summary = :summary,
              is_public = :isPublic,
@@ -148,9 +153,14 @@ public class ResumeRepository {
 
   // 소유자 조건 포함 삭제
   public int deleteByOwner(Long id, Long usersId) {
-    String sql = "DELETE FROM resume WHERE resume_id = :id AND users_id = :usersId";
+    String sql =
+        "DELETE FROM jobproject_resume " +
+        "WHERE resume_id = :id AND users_id = :usersId";
     return jdbc.update(
-        sql, new MapSqlParameterSource().addValue("id", id).addValue("usersId", usersId));
+        sql,
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("usersId", usersId));
   }
 
   public List<Response> search(PageRequest pr, Long usersId, String keyword) {
@@ -166,7 +176,7 @@ public class ResumeRepository {
         """
       SELECT resume_id, users_id, title, summary, is_public,
              resume_created_at, resume_updated_at
-      FROM resume
+      FROM jobproject_resume
       """
             + where
             + JdbcUtils.orderBy(pr.getSort(), sortMap)
@@ -175,7 +185,10 @@ public class ResumeRepository {
     var params =
         new MapSqlParameterSource()
             .addValue("usersId", usersId)
-            .addValue("kw", (keyword == null || keyword.isBlank()) ? null : "%" + keyword + "%")
+            .addValue("kw",
+                (keyword == null || keyword.isBlank())
+                    ? null
+                    : "%" + keyword + "%")
             .addValue("limit", pr.getSize())
             .addValue("offset", pr.offset());
 
@@ -185,11 +198,15 @@ public class ResumeRepository {
   public long count(Long usersId, String keyword) {
     String where = " WHERE users_id = :usersId ";
     where += JdbcUtils.whereLike(keyword, "title", "summary");
-    String sql = "SELECT COUNT(*) FROM resume " + where;
+    String sql =
+        "SELECT COUNT(*) FROM jobproject_resume " + where;
     var params =
         new MapSqlParameterSource()
             .addValue("usersId", usersId)
-            .addValue("kw", (keyword == null || keyword.isBlank()) ? null : "%" + keyword + "%");
+            .addValue("kw",
+                (keyword == null || keyword.isBlank())
+                    ? null
+                    : "%" + keyword + "%");
     return jdbc.queryForObject(sql, params, Long.class);
   }
 }
