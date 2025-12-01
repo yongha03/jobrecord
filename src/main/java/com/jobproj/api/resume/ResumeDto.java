@@ -4,6 +4,7 @@ package com.jobproj.api.resume;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class ResumeDto {
@@ -24,6 +25,18 @@ public class ResumeDto {
     // 8주차 수정: Validation 추가
     @NotNull(message = "공개 여부는 필수입니다.")
     public Boolean isPublic;
+
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    @Size(max = 50, message = "이름은 50자 이내여야 합니다.")
+    public String name;
+
+    @Size(max = 20, message = "전화번호는 20자 이내여야 합니다.")
+    public String phone;
+
+    @Size(max = 100, message = "이메일은 100자 이내여야 합니다.")
+    public String email;
+
+    public LocalDate birthDate;
   }
 
   public static class UpdateRequest {
@@ -39,6 +52,18 @@ public class ResumeDto {
     // 8주차 수정: Validation 추가
     @NotNull(message = "공개 여부는 필수입니다.")
     public Boolean isPublic;
+
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    @Size(max = 50, message = "이름은 50자 이내여야 합니다.")
+    public String name;
+
+    @Size(max = 20, message = "전화번호는 20자 이내여야 합니다.")
+    public String phone;
+
+    @Size(max = 100, message = "이메일은 100자 이내여야 합니다.")
+    public String email;
+
+    public LocalDate birthDate;
   }
 
   public static class Response {
@@ -51,6 +76,13 @@ public class ResumeDto {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
+    // 융합프로젝트 김태형 12주차 : 응답 DTO에 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    public String name;
+    public String phone;
+    public String email;
+    public LocalDate birthDate;
+
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보 필드를 포함하는 생성자 확장
     public Response(
         Long resumeId,
         Long usersId,
@@ -58,7 +90,11 @@ public class ResumeDto {
         String summary,
         Boolean isPublic,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        String name,
+        String phone,
+        String email,
+        LocalDate birthDate) {
       this.resumeId = resumeId;
       this.usersId = usersId;
       this.title = title;
@@ -66,6 +102,10 @@ public class ResumeDto {
       this.isPublic = isPublic;
       this.createdAt = createdAt;
       this.updatedAt = updatedAt;
+      this.name = name;
+      this.phone = phone;
+      this.email = email;
+      this.birthDate = birthDate;
     }
   }
 }

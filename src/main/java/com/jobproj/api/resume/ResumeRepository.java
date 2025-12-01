@@ -24,6 +24,7 @@ public class ResumeRepository {
     this.jdbc = jdbc;
   }
 
+  // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 컬럼을 포함하도록 RowMapper 확장
   private static final RowMapper<Response> MAPPER =
       (ResultSet rs, int i) ->
           new Response(
@@ -33,15 +34,24 @@ public class ResumeRepository {
               rs.getString("summary"),
               rs.getInt("is_public") == 1,
               rs.getTimestamp("resume_created_at").toLocalDateTime(),
-              rs.getTimestamp("resume_updated_at").toLocalDateTime());
+              rs.getTimestamp("resume_updated_at").toLocalDateTime(),
+              rs.getString("resume_full_name"),
+              rs.getString("resume_phone"),
+              rs.getString("resume_email"),
+              rs.getDate("resume_birth_date") != null
+                  ? rs.getDate("resume_birth_date").toLocalDate()
+                  : null);
 
   /** usersId를 인자로 받아 INSERT */
   public Long create(Long usersId, CreateRequest req) {
+    // 융합프로젝트 김태형 12주차 : INSERT 시 이력서 기본 정보(이름/전화번호/이메일/생년월일) 컬럼 저장
     String sql =
         """
       INSERT INTO jobproject_resume
-        (users_id, title, summary, is_public, resume_created_at, resume_updated_at)
-      VALUES (:usersId, :title, :summary, :isPublic, :now, :now)
+        (users_id, title, summary, is_public, resume_created_at, resume_updated_at,
+         resume_full_name, resume_phone, resume_email, resume_birth_date)
+      VALUES (:usersId, :title, :summary, :isPublic, :now, :now,
+              :name, :phone, :email, :birthDate)
       """;
     var params =
         new MapSqlParameterSource()
@@ -49,7 +59,12 @@ public class ResumeRepository {
             .addValue("title", req.title)
             .addValue("summary", req.summary)
             .addValue("isPublic", Boolean.TRUE.equals(req.isPublic) ? 1 : 0)
-            .addValue("now", Timestamp.valueOf(LocalDateTime.now()));
+            .addValue("now", Timestamp.valueOf(LocalDateTime.now()))
+            // 융합프로젝트 김태형 12주차 : INSERT 파라미터에 기본 정보 값 매핑
+            .addValue("name", req.name)
+            .addValue("phone", req.phone)
+            .addValue("email", req.email)
+            .addValue("birthDate", req.birthDate);
     var kh = new GeneratedKeyHolder();
     jdbc.update(sql, params, kh, new String[] {"resume_id"});
     return kh.getKey().longValue();
@@ -58,10 +73,12 @@ public class ResumeRepository {
   // --- 기존 단건조회(소유권 미검증): 남겨두되 서비스에서는 더이상 직접 사용 X
   public Optional<Response> findById(Long id) {
     try {
+      // 융합프로젝트 김태형 12주차 : SELECT 시 이력서 기본 정보 컬럼 포함
       String sql =
           """
         SELECT resume_id, users_id, title, summary, is_public,
-               resume_created_at, resume_updated_at
+               resume_created_at, resume_updated_at,
+               resume_full_name, resume_phone, resume_email, resume_birth_date
         FROM jobproject_resume
         WHERE resume_id = :id
         """;
@@ -74,16 +91,19 @@ public class ResumeRepository {
   // 소유자까지 조건을 포함한 단건 조회
   public Optional<Response> findByIdAndUsersId(Long id, Long usersId) {
     try {
+      // 융합프로젝트 김태형 12주차 : SELECT 시 이력서 기본 정보 컬럼 포함
       String sql =
           """
         SELECT resume_id, users_id, title, summary, is_public,
-               resume_created_at, resume_updated_at
+               resume_created_at, resume_updated_at,
+               resume_full_name, resume_phone, resume_email, resume_birth_date
         FROM jobproject_resume
         WHERE resume_id = :id AND users_id = :usersId
         """;
-      var params = new MapSqlParameterSource()
-          .addValue("id", id)
-          .addValue("usersId", usersId);
+      var params =
+          new MapSqlParameterSource()
+              .addValue("id", id)
+              .addValue("usersId", usersId);
       return Optional.ofNullable(jdbc.queryForObject(sql, params, MAPPER));
     } catch (EmptyResultDataAccessException e) {
       return Optional.empty();
@@ -104,13 +124,18 @@ public class ResumeRepository {
 
   // --- 기존 update/delete(소유권 미검증): 남겨두되 서비스에서 사용하지 않도록 함
   public int update(Long id, UpdateRequest req) {
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보 컬럼까지 함께 업데이트
     String sql =
         """
       UPDATE jobproject_resume
          SET title = :title,
              summary = :summary,
              is_public = :isPublic,
-             resume_updated_at = :now
+             resume_updated_at = :now,
+             resume_full_name = :name,
+             resume_phone = :phone,
+             resume_email = :email,
+             resume_birth_date = :birthDate
        WHERE resume_id = :id
       """;
     return jdbc.update(
@@ -120,6 +145,11 @@ public class ResumeRepository {
             .addValue("summary", req.summary)
             .addValue("isPublic", Boolean.TRUE.equals(req.isPublic) ? 1 : 0)
             .addValue("now", Timestamp.valueOf(LocalDateTime.now()))
+            // 융합프로젝트 김태형 12주차 : UPDATE 파라미터에 기본 정보 값 매핑
+            .addValue("name", req.name)
+            .addValue("phone", req.phone)
+            .addValue("email", req.email)
+            .addValue("birthDate", req.birthDate)
             .addValue("id", id));
   }
 
@@ -131,13 +161,18 @@ public class ResumeRepository {
 
   // 소유자 조건 포함 업데이트
   public int updateByOwner(Long id, Long usersId, UpdateRequest req) {
+    // 융합프로젝트 김태형 12주차 : 소유자 조건 업데이트에도 기본 정보 컬럼 포함
     String sql =
         """
       UPDATE jobproject_resume
          SET title = :title,
              summary = :summary,
              is_public = :isPublic,
-             resume_updated_at = :now
+             resume_updated_at = :now,
+             resume_full_name = :name,
+             resume_phone = :phone,
+             resume_email = :email,
+             resume_birth_date = :birthDate
        WHERE resume_id = :id AND users_id = :usersId
       """;
     return jdbc.update(
@@ -147,6 +182,11 @@ public class ResumeRepository {
             .addValue("summary", req.summary)
             .addValue("isPublic", Boolean.TRUE.equals(req.isPublic) ? 1 : 0)
             .addValue("now", Timestamp.valueOf(LocalDateTime.now()))
+            // 융합프로젝트 김태형 12주차 : UPDATE(소유자조건) 파라미터에 기본 정보 값 매핑
+            .addValue("name", req.name)
+            .addValue("phone", req.phone)
+            .addValue("email", req.email)
+            .addValue("birthDate", req.birthDate)
             .addValue("id", id)
             .addValue("usersId", usersId));
   }
@@ -172,10 +212,12 @@ public class ResumeRepository {
     String where = " WHERE users_id = :usersId ";
     where += JdbcUtils.whereLike(keyword, "title", "summary");
 
+    // 융합프로젝트 김태형 12주차 : 목록 조회 SELECT에도 이력서 기본 정보 컬럼 포함
     String sql =
         """
       SELECT resume_id, users_id, title, summary, is_public,
-             resume_created_at, resume_updated_at
+             resume_created_at, resume_updated_at,
+             resume_full_name, resume_phone, resume_email, resume_birth_date
       FROM jobproject_resume
       """
             + where
@@ -185,7 +227,8 @@ public class ResumeRepository {
     var params =
         new MapSqlParameterSource()
             .addValue("usersId", usersId)
-            .addValue("kw",
+            .addValue(
+                "kw",
                 (keyword == null || keyword.isBlank())
                     ? null
                     : "%" + keyword + "%")
@@ -203,7 +246,8 @@ public class ResumeRepository {
     var params =
         new MapSqlParameterSource()
             .addValue("usersId", usersId)
-            .addValue("kw",
+            .addValue(
+                "kw",
                 (keyword == null || keyword.isBlank())
                     ? null
                     : "%" + keyword + "%");

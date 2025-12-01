@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     //  - 좌측 입력 폼과 우측 미리보기를 실시간으로 동기화
     //  - 경력/프로젝트 동적 추가, 템플릿 캐러셀
     //  - 내 초안 페이지 이동, 로그인 사용자 정보 표시
-    //  - 이력서(학력/경력/프로젝트/스킬) 저장 + DB 값 다시 불러오기
+    //  - 이력서(학력/경력/프로젝트/스킬) 저장 + DB 값 다시 불러오기 + 요약(summary) 저장
+    //  - 이력서 기본 정보(이름/전화번호/이메일/생년월일)를 PATCH 시 항상 함께 전송
 
     // ------------------------------------------------------------
     // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸
@@ -24,6 +25,53 @@ document.addEventListener('DOMContentLoaded', () => {
         isPublic: false,
         summary: ''
     };
+
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 :
+    //  기본 정보 입력값 → PATCH/POST payload에 공통으로 넣기 위한 헬퍼
+    // ------------------------------------------------------------
+    function buildProfilePayload() {
+        const nameEl = document.getElementById('input-name');
+        const phoneEl = document.getElementById('input-phone');
+        const emailEl = document.getElementById('input-email');
+        const birthEl = document.getElementById('input-birth');
+
+        const name = nameEl ? nameEl.value.trim() : '';
+        const phone = phoneEl ? phoneEl.value.trim() : '';
+        const email = emailEl ? emailEl.value.trim() : '';
+        const birthDate = birthEl && birthEl.value ? birthEl.value : null; // "YYYY-MM-DD" or null
+
+        return {
+            name,
+            phone,
+            email,
+            birthDate
+        };
+    }
+
+    // 융합프로젝트 김태형 12주차 :
+    //  제목(파일 이름) + 요약 + 공개 여부 + 기본 정보까지 한 번에 묶어 payload 생성
+    function buildResumePatchPayload(explicitTitle) {
+        const nameSpan = document.getElementById('file-name-display');
+        const summaryInput = document.getElementById('input-summary');
+
+        const title =
+            explicitTitle != null && explicitTitle !== undefined
+                ? explicitTitle
+                : (nameSpan ? (nameSpan.textContent || '새 이력서').trim() : '새 이력서');
+
+        const summary = summaryInput ? summaryInput.value.trim() : '';
+        resumeMeta.summary = summary;
+
+        const profile = buildProfilePayload();
+
+        return {
+            title,
+            isPublic: resumeMeta.isPublic ?? false,
+            summary,
+            ...profile
+        };
+    }
 
     // ------------------------------------------------------------
     // 융합프로젝트 김태형 12주차 : "2024.01 ~ 2024.06 / 재직" ⇄ 날짜 파싱/포맷
@@ -111,11 +159,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 융합프로젝트 김태형 12주차 :
-    //  이력서 메타데이터(파일명, 공개 여부, 요약) 조회해서 상단/요약 입력칸에 반영
+    //  이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보)를 조회해서
+    //  상단/요약 입력칸 + 기본 정보 입력칸 + 미리보기에 반영
     // ------------------------------------------------------------
     async function loadResumeMeta(resumeId) {
         const nameSpan = document.getElementById('file-name-display');
         const summaryInput = document.getElementById('input-summary');
+        const previewSummary = document.getElementById('preview-summary');
+
+        const nameInput = document.getElementById('input-name');
+        const phoneInput = document.getElementById('input-phone');
+        const emailInput = document.getElementById('input-email');
+        const birthInput = document.getElementById('input-birth');
+
         if (!resumeId || !hasAuth) return;
 
         try {
@@ -129,11 +185,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 resumeMeta.summary = data.summary;
                 if (summaryInput) {
                     summaryInput.value = data.summary;
+                    // 미리보기와 바인딩되어 있으므로 input 이벤트 발생
                     summaryInput.dispatchEvent(new Event('input'));
+                } else if (previewSummary) {
+                    previewSummary.textContent = data.summary;
                 }
             }
             if (data.title && nameSpan) {
                 nameSpan.textContent = data.title;
+            }
+
+            // 융합프로젝트 김태형 12주차 : 서버에 저장된 기본 정보도 폼/미리보기에 채우기
+            if (nameInput && data.name) {
+                nameInput.value = data.name;
+                nameInput.dispatchEvent(new Event('input'));
+            }
+            if (phoneInput && data.phone) {
+                phoneInput.value = data.phone;
+                phoneInput.dispatchEvent(new Event('input'));
+            }
+            if (emailInput && data.email) {
+                emailInput.value = data.email;
+                emailInput.dispatchEvent(new Event('input'));
+            }
+            if (birthInput && data.birthDate) {
+                // data.birthDate는 "YYYY-MM-DD" 형식이라고 가정
+                birthInput.value = data.birthDate;
+                birthInput.dispatchEvent(new Event('input'));
             }
         } catch (err) {
             console.warn('이력서 메타정보 조회 실패(새 이력서일 수 있음):', err);
@@ -141,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 학력/경력/프로젝트/스킬 저장 로직 (이미 있던 부분)
+    // 학력/경력/프로젝트/스킬 저장 로직
     // ------------------------------------------------------------
 
     async function saveEducationSection(resumeId) {
@@ -508,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindField('input-birth', 'preview-birth');
     bindField('input-summary', 'preview-summary');
 
-    // 요약 입력 시 resumeMeta.summary 도 같이 갱신
+    // 융합프로젝트 김태형 12주차 : 요약 입력 시 resumeMeta.summary 도 같이 갱신
     const summaryInputEl = document.getElementById('input-summary');
     if (summaryInputEl) {
         summaryInputEl.addEventListener('input', (e) => {
@@ -899,6 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 파일 이름 변경 버튼
+    //  - 제목만 바꾸는 게 아니라 기본 정보도 같이 PATCH 해서 null로 안 날아가게 처리
     // ------------------------------------------------------------
     const renameBtn = document.getElementById('rename-file-btn');
     if (renameBtn && resumeId && hasAuth) {
@@ -915,13 +994,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                // 융합프로젝트 김태형 12주차 :
+                //  제목 변경 시에도 기본 정보(name/phone/email/birthDate)를 함께 PATCH
+                const payload = buildResumePatchPayload(trimmed);
+
                 await apiJson(`/api/resumes/${resumeId}`, {
                     method: 'PATCH',
-                    body: JSON.stringify({
-                        title: trimmed,
-                        isPublic: resumeMeta.isPublic ?? false,
-                        summary: resumeMeta.summary ?? ''
-                    })
+                    body: JSON.stringify(payload)
                 });
                 if (nameSpan) {
                     nameSpan.textContent = trimmed;
@@ -935,7 +1014,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 상단 "저장하기" 버튼 (페이지는 그대로 두고 섹션만 저장)
+    // 상단 "저장하기" 버튼
+    //  - 현재 파일 이름 + 한 줄 소개 + 기본 정보까지 PATCH 한 뒤 섹션 저장
     // ------------------------------------------------------------
     const saveFileBtn = document.getElementById('save-file-btn');
     if (saveFileBtn) {
@@ -954,6 +1034,19 @@ document.addEventListener('DOMContentLoaded', () => {
             saveFileBtn.textContent = '저장 중...';
 
             try {
+                const nameSpan = document.getElementById('file-name-display');
+                const currentTitle = (nameSpan?.textContent || '새 이력서').trim();
+
+                // 융합프로젝트 김태형 12주차 :
+                //  현재 입력된 요약 + 기본 정보를 포함해 PATCH payload 구성
+                const payload = buildResumePatchPayload(currentTitle);
+
+                await apiJson(`/api/resumes/${resumeId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload)
+                });
+
+                // 섹션 저장
                 await saveAllSections(resumeId);
                 alert('이력서 내용이 저장되었습니다.');
             } catch (err) {
@@ -968,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 우측 하단 "이력서 생성하기" 버튼
-    //  - 제목 PATCH + 섹션 저장 후 /resume/make 로 이동
+    //  - 제목 + 한 줄 소개 + 기본 정보를 PATCH 후 섹션 저장하고 /resume/make 로 이동
     // ------------------------------------------------------------
     const createResumeBtn = document.querySelector('.create-btn');
     if (createResumeBtn) {
@@ -997,13 +1090,13 @@ document.addEventListener('DOMContentLoaded', () => {
             createResumeBtn.textContent = '저장 중...';
 
             try {
+                // 융합프로젝트 김태형 12주차 :
+                //  입력된 제목 + 요약 + 기본 정보를 한꺼번에 PATCH
+                const payload = buildResumePatchPayload(title);
+
                 await apiJson(`/api/resumes/${resumeId}`, {
                     method: 'PATCH',
-                    body: JSON.stringify({
-                        title,
-                        isPublic: resumeMeta.isPublic ?? false,
-                        summary: resumeMeta.summary ?? ''
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (nameSpan) {

@@ -1,8 +1,31 @@
 document.addEventListener('DOMContentLoaded', function() {
     // ==========================================
-    // 0. 공통: API Base / Auth 객체 체크
+    // 0. 공통: Auth 객체 체크 + API 래퍼
     // ==========================================
     const hasAuth = (window.Auth && typeof window.Auth.fetchMe === 'function');
+    // 융합프로젝트 김태형 12주차 : Auth.apiFetch 사용 여부
+    const hasAuthApi = (window.Auth && typeof window.Auth.apiFetch === 'function');
+
+    // 융합프로젝트 김태형 12주차 :
+    //  공통 JSON 래퍼 (성공시 body.data 반환, 실패시 Error)
+    async function apiJson(path, options = {}) {
+        if (!hasAuthApi) {
+            throw new Error('Auth.apiFetch를 사용할 수 없습니다.');
+        }
+        const res = await window.Auth.apiFetch(path, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            }
+        });
+        const body = await res.json();
+        if (!body || !body.success) {
+            const msg = (body && body.message) ? body.message : 'API 호출 실패';
+            throw new Error(msg);
+        }
+        return body.data;
+    }
 
     // ==========================================
     // 1. 프로필(우측 상단) 메뉴 로직
@@ -87,10 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 5. 새 이력서 생성 + 편집 화면 이동
     // ==========================================
     // 2233073 김용하 12주차 : /api/resumes POST로 새 이력서 생성 후 /resume/edit?resumeId=... 로 이동
+    // 융합프로젝트 김태형 12주차 :
+    //  - 이력서 기본 정보 필드(name/phone/email/birthDate)를 포함해 생성
     const newResumeBtn = document.getElementById('new-resume-btn');
 
-    if (newResumeBtn && window.Auth && typeof window.Auth.apiFetch === 'function') {
-        newResumeBtn.addEventListener('click', function(e) {
+    if (newResumeBtn && hasAuthApi) {
+        newResumeBtn.addEventListener('click', async function(e) {
             e.preventDefault();
 
             if (newResumeBtn.dataset.loading === 'true') return;
@@ -99,33 +124,31 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalHtml = newResumeBtn.innerHTML;
             newResumeBtn.innerHTML = '<span class="plus-icon">+</span> 생성 중...';
 
-            window.Auth.apiFetch('/api/resumes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            try {
+                const payload = {
                     title: '새 이력서',
                     summary: '',
-                    isPublic: false
-                })
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(body) {
-                if (!body || !body.success || body.data == null) {
-                    throw new Error(body && body.message ? body.message : '이력서 생성 실패');
-                }
-                const resumeId = body.data;
-                window.location.href = '/resume/edit?resumeId=' + encodeURIComponent(resumeId);
-            })
-            .catch(function(err) {
+                    isPublic: false,
+                    // 융합프로젝트 김태형 12주차 : 기본 정보는 초기에는 비워서 생성
+                    name: null,
+                    phone: null,
+                    email: null,
+                    birthDate: null
+                };
+
+                const newId = await apiJson('/api/resumes', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                window.location.href = '/resume/edit?resumeId=' + encodeURIComponent(newId);
+            } catch (err) {
                 console.error('새 이력서 생성 중 오류:', err);
                 alert('이력서 생성에 실패했습니다.\n' + (err.message || '알 수 없는 오류'));
-            })
-            .finally(function() {
+            } finally {
                 newResumeBtn.dataset.loading = 'false';
                 newResumeBtn.innerHTML = originalHtml;
-            });
+            }
         });
     } else {
         console.warn('new-resume-btn 또는 Auth.apiFetch를 찾을 수 없습니다.');
@@ -179,9 +202,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // 융합프로젝트 김태형 12주차 :
+    //  내 이력서 목록을 불러와 카드로 그리는 함수
     async function loadMyResumes() {
         if (!draftsContainer) return;
-        if (!window.Auth || typeof window.Auth.apiFetch !== 'function') {
+        if (!hasAuthApi) {
             console.warn('Auth.apiFetch가 없어 이력서 목록을 불러오지 않습니다.');
             return;
         }
@@ -189,14 +214,8 @@ document.addEventListener('DOMContentLoaded', function() {
         draftsContainer.innerHTML = '';
 
         try {
-            const res = await window.Auth.apiFetch('/api/resumes?page=0&size=50&sort=createdAt,desc');
-            const body = await res.json();
-
-            if (!body || !body.success || !body.data) {
-                throw new Error(body && body.message ? body.message : '이력서 목록 조회 실패');
-            }
-
-            const page = body.data;
+            // 정렬 키는 서버의 sortMap(created_at 등)에 맞춰서 사용
+            const page = await apiJson('/api/resumes?page=0&size=50&sort=created_at,desc');
             const items = Array.isArray(page.content) ? page.content : [];
 
             if (items.length === 0) {
@@ -265,6 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // 2233073 김용하 12주차 : 카드에서 바로 제목 수정(PATCH /api/resumes/{id})
+                // 융합프로젝트 김태형 12주차 :
+                //  - 제목 변경 시, DB에 저장된 기본 정보(name/phone/email/birthDate)까지 유지하도록
                 if (renameBtn) {
                     renameBtn.addEventListener('click', async function(e) {
                         e.preventDefault();
@@ -285,17 +306,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             const id = card.dataset.resumeId;
                             if (!id) throw new Error('이력서 ID가 없습니다.');
 
-                            await window.Auth.apiFetch('/api/resumes/' + encodeURIComponent(id), {
+                            // 융합프로젝트 김태형 12주차 :
+                            //  현재 이력서의 summary / isPublic / 기본 정보를 단건 조회
+                            const detail = await apiJson('/api/resumes/' + encodeURIComponent(id));
+
+                            const payload = {
+                                title: trimmed,
+                                isPublic: (typeof detail.isPublic === 'boolean')
+                                    ? detail.isPublic
+                                    : false,
+                                summary: detail.summary || '',
+                                name: detail.name || null,
+                                phone: detail.phone || null,
+                                email: detail.email || null,
+                                birthDate: detail.birthDate || null
+                            };
+
+                            await apiJson('/api/resumes/' + encodeURIComponent(id), {
                                 method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    title: trimmed,
-                                    isPublic: typeof resume.isPublic === 'boolean' ? resume.isPublic : false,
-                                    summary: resume.summary || ''
-                                })
-                            }).then(function(r) { return r.json(); });
+                                body: JSON.stringify(payload)
+                            });
 
                             if (nameSpan) {
                                 nameSpan.textContent = trimmed;
