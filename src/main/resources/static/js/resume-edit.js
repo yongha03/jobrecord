@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //  - 프로필 사진(증명사진) 업로드 + DB URL 저장 + 미리보기 표시
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸
+    // 이력서 ID 파라미터 추출 + API 공통 유틸
     // ------------------------------------------------------------
     const hasAuth = (window.Auth && typeof window.Auth.apiFetch === 'function');
 
@@ -20,16 +20,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resumeId = getResumeIdFromUrl();
 
-    // 융합프로젝트 김태형 12주차 :
-    //  이력서 메타데이터(공개 여부, 요약)를 임시로 들고 있는 캐시
+    // 이력서 메타데이터(공개 여부, 요약)를 임시로 들고 있는 캐시
     let resumeMeta = {
         isPublic: false,
         summary: ''
     };
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 :
-    //  기본 정보 입력값 → PATCH/POST payload에 공통으로 넣기 위한 헬퍼
+    // 기본 정보 입력값 → PATCH/POST payload에 공통으로 넣기 위한 헬퍼
     // ------------------------------------------------------------
     function buildProfilePayload() {
         const nameEl = document.getElementById('input-name');
@@ -50,8 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // 융합프로젝트 김태형 12주차 :
-    //  제목(파일 이름) + 요약 + 공개 여부 + 기본 정보까지 한 번에 묶어 payload 생성
+    // 제목(파일 이름) + 요약 + 공개 여부 + 기본 정보까지 한 번에 묶어 payload 생성
     function buildResumePatchPayload(explicitTitle) {
         const nameSpan = document.getElementById('file-name-display');
         const summaryInput = document.getElementById('input-summary');
@@ -75,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 : "2024.01 ~ 2024.06 / 재직" ⇄ 날짜 파싱/포맷
+    // "2024.01 ~ 2024.06 / 재직" ⇄ 날짜 파싱/포맷
     // ------------------------------------------------------------
     function parsePeriod(text) {
         if (!text) {
@@ -110,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { startDate, endDate, isCurrent };
     }
 
-    // 융합프로젝트 김태형 12주차 : DB에 있는 startDate/endDate를 "YYYY.MM ~ 재직" 형식으로 변환
+    // DB에 있는 startDate/endDate를 "YYYY.MM ~ 재직" 형식으로 변환
     function formatPeriod(startDate, endDate, isCurrent) {
         function toYm(dateStr) {
             if (!dateStr) return '';
@@ -159,9 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 :
-    //  이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보, 사진)를 조회해서
-    //  상단/요약 입력칸 + 기본 정보 입력칸 + 미리보기에 반영
+    // 이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보, 사진)를 조회해서
+    // 상단/요약 입력칸 + 기본 정보 입력칸 + 미리보기에 반영
     // ------------------------------------------------------------
     async function loadResumeMeta(resumeId) {
         const nameSpan = document.getElementById('file-name-display');
@@ -214,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 birthInput.dispatchEvent(new Event('input'));
             }
 
-            // 융합프로젝트 김태형 12주차 : 서버에 저장된 프로필 사진 URL 반영
+            // 프로필 사진
             if (photoBox) {
                 if (data.profileImageUrl) {
                     photoBox.innerHTML =
@@ -231,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------
     // 학력/경력/프로젝트/스킬 저장 로직
     // ------------------------------------------------------------
-
     async function saveEducationSection(resumeId) {
         const school =
             document.getElementById('input-edu-school')?.value.trim() || '';
@@ -443,8 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 :
-    //  DB에 저장된 학력/경력/프로젝트/스킬을 불러와서 입력칸 + 미리보기에 채우는 로직
+    // DB에서 학력/경력/프로젝트/스킬 읽어와서 입력칸 + 미리보기에 채우기
     // ------------------------------------------------------------
     async function loadEducationSectionFromApi(resumeId) {
         try {
@@ -726,10 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupProjectRoleTechBinding(1);
 
     // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 :
-    //  프로필 사진 업로드 API 호출 + 미리보기 반영 헬퍼
-    //   - POST /api/resumes/{id}/profile-image (multipart/form-data)
-    //   - 응답의 profileImageUrl을 사용해 미리보기 이미지도 서버 URL로 교체
+    // 프로필 사진 업로드 API 호출 + 미리보기 반영
     // ------------------------------------------------------------
     async function uploadProfileImageToServer(resumeId, file, photoBox) {
         if (!resumeId) {
@@ -777,9 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ------------------------------------------------------------
-    // 융합프로젝트 김태형 12주차 : 사진 업로드 (로컬 미리보기 + 서버 업로드)
-    // ------------------------------------------------------------
+    // 사진 업로드 (로컬 미리보기 + 서버 업로드)
     const photoInput = document.getElementById('input-photo');
     const photoBox = document.getElementById('preview-photo-box');
 
@@ -788,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 1) 로컬 미리보기 (사용자 즉시 확인용)
+            // 1) 로컬 미리보기
             const reader = new FileReader();
             reader.onload = function(event) {
                 photoBox.innerHTML =
@@ -796,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
 
-            // 2) 서버 업로드 (DB에 URL 저장)
+            // 2) 서버 업로드
             if (resumeId && hasAuth) {
                 await uploadProfileImageToServer(resumeId, file, photoBox);
             }
@@ -870,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 경력 추가 동적 UI (+ 전역 함수로 노출해서 로딩 시 재사용)
+    // 경력 추가 동적 UI (+ 전역 함수로 노출)
     // ------------------------------------------------------------
     const MAX_EXP = 5;
     let expCount = 1;
@@ -990,9 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     '.project-group[data-proj-index="1"]'
                 );
             const basePreview =
-                previewProjectList.querySelector(
-                    '.resume-item[data-proj-index="1"]'
-                );
+                previewProjectList.querySelector('.resume-item[data-proj-index="1"]');
             if (!baseGroup || !basePreview) return;
 
             const groupClone = baseGroup.cloneNode(true);
@@ -1130,7 +1117,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 파일 이름 변경 버튼
-    //  - 제목만 바꾸는 게 아니라 기본 정보도 같이 PATCH 해서 null로 안 날아가게 처리
     // ------------------------------------------------------------
     const renameBtn = document.getElementById('rename-file-btn');
     if (renameBtn && resumeId && hasAuth) {
@@ -1166,7 +1152,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 상단 "저장하기" 버튼
-    //  - 현재 파일 이름 + 한 줄 소개 + 기본 정보까지 PATCH 한 뒤 섹션 저장
     // ------------------------------------------------------------
     const saveFileBtn = document.getElementById('save-file-btn');
     if (saveFileBtn) {
@@ -1209,8 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 우측 하단 "이력서 생성하기" 버튼
-    //  - 제목 + 한 줄 소개 + 기본 정보를 PATCH 후 섹션 저장하고 /resume/make 로 이동
+    // 우측 하단 "이력서 생성하기" 버튼 (최종 저장 + 목록으로 이동)
     // ------------------------------------------------------------
     const createResumeBtn = document.querySelector('.create-btn');
     if (createResumeBtn) {
@@ -1260,6 +1244,88 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 createResumeBtn.disabled = false;
                 createResumeBtn.textContent = originalText;
+            }
+        });
+    }
+
+    // ------------------------------------------------------------
+    // 템플릿 미리보기 그대로 A4 PDF로 다운로드
+    //   - html2canvas + jsPDF UMD 버전 모두 대응(window.jspdf 또는 window.jsPDF)
+    // ------------------------------------------------------------
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    if (downloadPdfBtn && resumeWrapper) {
+        downloadPdfBtn.addEventListener('click', async () => {
+            // html2canvas / jsPDF 전역 체크
+            const hasHtml2 = typeof window.html2canvas === 'function' ||
+                (window.html2canvas && typeof window.html2canvas.default === 'function');
+            const hasJsPdf = !!(window.jspdf || window.jsPDF);
+
+            if (!hasHtml2 || !hasJsPdf) {
+                console.error('html2canvas:', window.html2canvas);
+                console.error('jspdf(global):', window.jspdf, window.jsPDF);
+                alert(
+                    'PDF 생성 라이브러리가 로드되지 않았습니다.\n' +
+                    '학교/PC에서 CDN을 막는 경우일 수 있습니다.'
+                );
+                return;
+            }
+
+            // html2canvas 함수 가져오기
+            let html2c;
+            if (typeof window.html2canvas === 'function') {
+                html2c = window.html2canvas;
+            } else {
+                html2c = window.html2canvas.default;
+            }
+
+            // jsPDF 생성자 가져오기 (UMD / 구버전 둘 다 대응)
+            const JsPdfCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+
+            const originalText = downloadPdfBtn.textContent;
+            downloadPdfBtn.disabled = true;
+            downloadPdfBtn.textContent = 'PDF 생성 중...';
+
+            try {
+                // DOM → 캔버스 (화질을 위해 scale 2)
+                const canvas = await html2c(resumeWrapper, {
+                    scale: 2,
+                    useCORS: true,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: document.documentElement.clientWidth,
+                    windowHeight: document.documentElement.clientHeight
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+
+                const pdf = new JsPdfCtor('p', 'mm', 'a4');
+
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+
+                const renderWidth = imgWidth * ratio;
+                const renderHeight = imgHeight * ratio;
+
+                const marginX = (pdfWidth - renderWidth) / 2;
+                const marginY = (pdfHeight - renderHeight) / 2;
+
+                pdf.addImage(imgData, 'PNG', marginX, marginY, renderWidth, renderHeight);
+
+                const filename = resumeId
+                    ? `resume-${resumeId}.pdf`
+                    : 'resume.pdf';
+
+                pdf.save(filename);
+            } catch (err) {
+                console.error('PDF 생성 실패:', err);
+                alert('PDF 생성 중 오류가 발생했습니다.\n' + err.message);
+            } finally {
+                downloadPdfBtn.disabled = false;
+                downloadPdfBtn.textContent = originalText;
             }
         });
     }

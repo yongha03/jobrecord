@@ -6,12 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="/css/resume-edit.css">
+
+    <!-- ✅ PDF 생성용 라이브러리: 로컬 js 사용 (CDN 차단 대비) -->
+    <script src="/js/lib/html2canvas.min.js"></script>
+    <script src="/js/lib/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="page">
     <header>
         <div class="top-bar">
-            <!-- 융합프로젝트 김태형 12주차 : 내 초안(이력서 목록) 페이지로 보내기 위해 id 추가 -->
+            <!-- 내 초안(이력서 목록) 페이지로 이동 -->
             <button type="button" class="back-button" id="back-to-list-btn">
                 <span>&lt;</span>
                 <span>이력서 목록으로</span>
@@ -39,6 +43,7 @@
     </header>
 
     <main class="layout">
+        <!-- ===================== 좌측 입력 영역 ===================== -->
         <section class="editor">
             <h2>이력서 정보 입력</h2>
 
@@ -188,13 +193,20 @@
             </div>
         </section>
 
+        <!-- ===================== 우측 미리보기 영역 ===================== -->
         <section class="preview">
-            <!-- 상단 제목 + 설명 -->
+            <!-- 상단 제목 + 설명 + PDF 버튼 -->
             <div class="preview-header-row">
-                <h2>이력서 템플릿 미리보기</h2>
-                <span class="preview-subtitle">
-                    &lt; / &gt; 버튼이나 아래 점을 눌러 템플릿을 바꿔보세요.
-                </span>
+                <div>
+                    <h2>이력서 템플릿 미리보기</h2>
+                    <span class="preview-subtitle">
+                        &lt; / &gt; 버튼이나 아래 점을 눌러 템플릿을 바꿔보세요.
+                    </span>
+                </div>
+                <!-- ✅ resume-edit.js에서 .download-pdf-btn 클래스로 찾음 -->
+                <button type="button" class="top-btn primary download-pdf-btn" id="download-pdf-btn">
+                    PDF 내보내기
+                </button>
             </div>
 
             <!-- 좌우 버튼 + 점 + 1/6 표시 -->
@@ -215,7 +227,7 @@
                 </div>
             </div>
 
-            <!-- 실제 이력서 미리보기 (1번 템플릿) -->
+            <!-- 실제 이력서 미리보기 (템플릿 1) -->
             <div class="resume-wrapper template-1">
                 <header class="resume-header">
                     <div class="resume-photo">
@@ -315,10 +327,12 @@
     </main>
 </div>
 
+<!-- 우측 하단 플로팅 버튼: 최종 저장 -->
 <div class="floating-create-btn">
     <button type="button" class="create-btn">이력서 생성하기</button>
 </div>
 
+<!-- ✅ PDF 관련 로직은 전부 /js/resume-edit.js 안에 있음 -->
 <script src="/js/env.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/resume-edit.js"></script>
