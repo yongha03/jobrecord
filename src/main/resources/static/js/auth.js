@@ -7,6 +7,7 @@
   const apiBase =
     (window.ENV && window.ENV.API_BASE_URL) ? window.ENV.API_BASE_URL : '';
 
+  // 2233076 13주차 추가: JWT 토큰 만료 시 로그인 페이지 리다이렉트
   // 공통 fetch 래퍼
   function apiFetch(path, options = {}) {
     const finalOptions = {
@@ -21,8 +22,12 @@
 
     return fetch(apiBase + path, finalOptions)
       .then(function (res) {
-        // 인증 안 된 상태 → 공통으로 로그인 페이지로 돌려보냄
+        // 인증 안 된 상태(토큰 만료 포함) → 공통으로 로그인 페이지로 돌려보냄
         if (res.status === 401 || res.status === 403) {
+          // 현재 로그인 페이지가 아닐 때만 알림 표시
+          if (!window.location.pathname.includes('/auth/login')) {
+            alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+          }
           window.location.href = '/auth/login';
           return Promise.reject(new Error('unauthorized'));
         }

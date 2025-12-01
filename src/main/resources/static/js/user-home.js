@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
       .then(function (res) {
+        // 2233076 13주차 추가: JWT 토큰 만료 시 로그인 페이지 리다이렉트
         if (res.status === 401 || res.status === 403) {
+          alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
           window.location.href = '/auth/login';
           return Promise.reject('unauthorized');
         }

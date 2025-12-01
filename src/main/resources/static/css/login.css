@@ -98,6 +98,7 @@ body {
     border-color: #0055FF;
 }
 
+/* 2233076 13주차 추가: 비밀번호 표시/숨김 토글 버튼 스타일 */
 /* 비밀번호 필드 전용 */
 .password-wrapper {
     position: relative;
@@ -126,6 +127,7 @@ body {
     color: #0055FF;
 }
 
+/* 2233076 13주차 추가: Caps Lock 경고 스타일 */
 /* Caps Lock 경고 */
 .caps-lock-warning {
     color: #f57c00;

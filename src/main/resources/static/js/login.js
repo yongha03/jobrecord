@@ -11,6 +11,7 @@ const loginButton = document.querySelector('.login-button');
 const loginForm = document.querySelector('.login-form');
 const loginError = document.getElementById('login-error');
 
+// 2233076 13주차 추가: 비밀번호 표시/숨김 토글 기능
 // 비밀번호 표시/숨김 토글
 const passwordToggle = document.querySelector('.password-toggle');
 const capsLockWarning = document.querySelector('.caps-lock-warning');
@@ -30,6 +31,7 @@ if (passwordToggle && passwordInput) {
   });
 }
 
+// 2233076 13주차 추가: Caps Lock 감지 기능
 // Caps Lock 감지
 if (passwordInput && capsLockWarning) {
   passwordInput.addEventListener('keydown', function(e) {

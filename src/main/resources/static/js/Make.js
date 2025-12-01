@@ -250,8 +250,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="draft-dropdown-menu">
                                 <ul>
                                     <li><a href="#" class="rename-option">이름 변경</a></li>
-                                    <!-- 2233073 김용하 12주차 : 이력서를 PDF 파일로 다운받는 메뉴 -->
-                                    <li><a href="#" class="export-pdf-option">PDF 내보내기</a></li>
                                     <li><a href="#" class="delete-option">삭제</a></li>
                                 </ul>
                             </div>
@@ -273,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dropdown = card.querySelector('.draft-dropdown-menu');
                 const renameBtn = card.querySelector('.rename-option');
                 const deleteBtn = card.querySelector('.delete-option');
-                const exportBtn = card.querySelector('.export-pdf-option');
 
                 if (optionsBtn && dropdown) {
                     optionsBtn.addEventListener('click', function(e) {
@@ -369,33 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.error('이력서 삭제 실패:', err);
                             alert('이력서 삭제 중 오류가 발생했습니다.\n' + (err.message || '알 수 없는 오류'));
                         }
-                    });
-                }
-
-                // 2233073 김용하 12주차 :
-                //  카드에서 바로 PDF 내보내기(GET /api/resumes/{id}/pdf?template=n)
-                //   - 위에서 선택된 템플릿 인덱스를 쿼리 파라미터로 넘긴다.
-                if (exportBtn) {
-                    exportBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        closeAllDraftMenus();
-
-                        const id = card.dataset.resumeId;
-                        if (!id) {
-                            alert('이력서 ID가 없습니다.');
-                            return;
-                        }
-
-                        const templateIndex = selectedTemplateIndex || 1;
-                        const url =
-                            '/api/resumes/' +
-                            encodeURIComponent(id) +
-                            '/pdf?template=' +
-                            encodeURIComponent(templateIndex);
-
-                        // 새 탭으로 PDF 다운로드/열기
-                        window.open(url, '_blank');
                     });
                 }
             });
