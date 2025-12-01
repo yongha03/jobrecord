@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 5. 새 이력서 생성 + 편집 화면 이동
     // ==========================================
     // 2233073 김용하 12주차 : /api/resumes POST로 새 이력서 생성 후 /resume/edit?resumeId=... 로 이동
+    // 2233076 12주차 추가: 선택한 템플릿 ID 포함
     // 융합프로젝트 김태형 12주차 :
     //  - 이력서 기본 정보 필드(name/phone/email/birthDate)를 포함해 생성
     const newResumeBtn = document.getElementById('new-resume-btn');
@@ -133,7 +134,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     name: null,
                     phone: null,
                     email: null,
-                    birthDate: null
+                    birthDate: null,
+                    // 2233076 12주차 추가: 선택한 템플릿 ID 포함
+                    templateId: selectedTemplateIndex || 1
                 };
 
                 const newId = await apiJson('/api/resumes', {
@@ -281,6 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // 2233073 김용하 12주차 : 카드에서 바로 제목 수정(PATCH /api/resumes/{id})
+                // 2233076 12주차 추가: 템플릿 ID 유지
                 // 융합프로젝트 김태형 12주차 :
                 //  - 제목 변경 시, DB에 저장된 기본 정보(name/phone/email/birthDate)까지 유지하도록
                 if (renameBtn) {
@@ -316,7 +320,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 name: detail.name || null,
                                 phone: detail.phone || null,
                                 email: detail.email || null,
-                                birthDate: detail.birthDate || null
+                                birthDate: detail.birthDate || null,
+                                // 2233076 12주차 추가: 템플릿 ID 유지
+                                templateId: detail.templateId || 1
                             };
 
                             await apiJson('/api/resumes/' + encodeURIComponent(id), {

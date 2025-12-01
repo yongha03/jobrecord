@@ -2,9 +2,10 @@ package com.jobproj.api.resume;
 
 import com.jobproj.api.common.JdbcUtils;
 import com.jobproj.api.common.PageRequest;
-import com.jobproj.api.resume.ResumeDto.CreateRequest;
-import com.jobproj.api.resume.ResumeDto.Response;
-import com.jobproj.api.resume.ResumeDto.UpdateRequest;
+import com.jobproj.api.dto.ResumeDto;
+import com.jobproj.api.dto.ResumeDto.CreateRequest;
+import com.jobproj.api.dto.ResumeDto.Response;
+import com.jobproj.api.dto.ResumeDto.UpdateRequest;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -27,7 +28,8 @@ public class ResumeRepository {
         this.jdbc = jdbc;
     }
 
-    // 이력서 + 기본정보 + 프로필사진까지 한 번에 매핑
+    // 2233076 12주차 수정: 템플릿 ID 포함
+    // 이력서 + 기본정보 + 프로필사진 + 템플릿ID까지 한 번에 매핑
     private static final RowMapper<Response> MAPPER =
             (ResultSet rs, int i) ->
                     new Response(
@@ -44,9 +46,13 @@ public class ResumeRepository {
                             rs.getDate("resume_birth_date") != null
                                     ? rs.getDate("resume_birth_date").toLocalDate()
                                     : null,
-                            rs.getString("resume_profile_image_url")
+                            rs.getString("resume_profile_image_url"),
+                            rs.getObject("template_id") != null 
+                                    ? rs.getInt("template_id") 
+                                    : 1  // 기본값 1
                     );
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 생성 (JWT에서 받은 usersId 주입)
     public Long create(Long usersId, CreateRequest req) {
         String sql =
@@ -61,7 +67,8 @@ public class ResumeRepository {
                    resume_full_name,
                    resume_phone,
                    resume_email,
-                   resume_birth_date)
+                   resume_birth_date,
+                   template_id)
                 VALUES (:usersId,
                         :title,
                         :summary,
@@ -71,8 +78,15 @@ public class ResumeRepository {
                         :name,
                         :phone,
                         :email,
-                        :birthDate)
+                        :birthDate,
+                        :templateId)
                 """;
+
+        // templateId가 null이거나 1-6 범위 밖이면 1로 보정
+        Integer templateId = req.templateId;
+        if (templateId == null || templateId < 1 || templateId > 6) {
+            templateId = 1;
+        }
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("usersId", usersId)
@@ -83,13 +97,15 @@ public class ResumeRepository {
                 .addValue("name", req.name)
                 .addValue("phone", req.phone)
                 .addValue("email", req.email)
-                .addValue("birthDate", req.birthDate);
+                .addValue("birthDate", req.birthDate)
+                .addValue("templateId", templateId);
 
         GeneratedKeyHolder kh = new GeneratedKeyHolder();
         jdbc.update(sql, params, kh, new String[]{"resume_id"});
         return kh.getKey().longValue();
     }
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 단건 조회 (소유권 검증 없음)
     public Optional<Response> findById(Long id) {
         try {
@@ -106,7 +122,8 @@ public class ResumeRepository {
                            resume_phone,
                            resume_email,
                            resume_birth_date,
-                           resume_profile_image_url
+                           resume_profile_image_url,
+                           template_id
                       FROM jobproject_resume
                      WHERE resume_id = :id
                     """;
@@ -118,6 +135,7 @@ public class ResumeRepository {
         }
     }
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 소유자 조건 포함 단건 조회
     public Optional<Response> findByIdAndUsersId(Long id, Long usersId) {
         try {
@@ -134,7 +152,8 @@ public class ResumeRepository {
                            resume_phone,
                            resume_email,
                            resume_birth_date,
-                           resume_profile_image_url
+                           resume_profile_image_url,
+                           template_id
                       FROM jobproject_resume
                      WHERE resume_id = :id
                        AND users_id = :usersId
@@ -162,8 +181,15 @@ public class ResumeRepository {
         }
     }
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 기존 update (소유권 미검증)
     public int update(Long id, UpdateRequest req) {
+        // templateId가 null이거나 1-6 범위 밖이면 1로 보정
+        Integer templateId = req.templateId;
+        if (templateId == null || templateId < 1 || templateId > 6) {
+            templateId = 1;
+        }
+
         String sql =
                 """
                 UPDATE jobproject_resume
@@ -174,7 +200,8 @@ public class ResumeRepository {
                        resume_full_name = :name,
                        resume_phone = :phone,
                        resume_email = :email,
-                       resume_birth_date = :birthDate
+                       resume_birth_date = :birthDate,
+                       template_id = :templateId
                  WHERE resume_id = :id
                 """;
 
@@ -189,12 +216,20 @@ public class ResumeRepository {
                         .addValue("phone", req.phone)
                         .addValue("email", req.email)
                         .addValue("birthDate", req.birthDate)
+                        .addValue("templateId", templateId)
                         .addValue("id", id)
         );
     }
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 소유자 조건 포함 업데이트
     public int updateByOwner(Long id, Long usersId, UpdateRequest req) {
+        // templateId가 null이거나 1-6 범위 밖이면 1로 보정
+        Integer templateId = req.templateId;
+        if (templateId == null || templateId < 1 || templateId > 6) {
+            templateId = 1;
+        }
+
         String sql =
                 """
                 UPDATE jobproject_resume
@@ -205,7 +240,8 @@ public class ResumeRepository {
                        resume_full_name = :name,
                        resume_phone = :phone,
                        resume_email = :email,
-                       resume_birth_date = :birthDate
+                       resume_birth_date = :birthDate,
+                       template_id = :templateId
                  WHERE resume_id = :id
                    AND users_id = :usersId
                 """;
@@ -221,6 +257,7 @@ public class ResumeRepository {
                         .addValue("phone", req.phone)
                         .addValue("email", req.email)
                         .addValue("birthDate", req.birthDate)
+                        .addValue("templateId", templateId)
                         .addValue("id", id)
                         .addValue("usersId", usersId)
         );
@@ -267,6 +304,7 @@ public class ResumeRepository {
         );
     }
 
+    // 2233076 12주차 수정: 템플릿 ID 포함
     // 목록 조회
     public List<Response> search(PageRequest pr, Long usersId, String keyword) {
         Map<String, String> sortMap =
@@ -292,7 +330,8 @@ public class ResumeRepository {
                        resume_phone,
                        resume_email,
                        resume_birth_date,
-                       resume_profile_image_url
+                       resume_profile_image_url,
+                       template_id
                   FROM jobproject_resume
                 """
                         + where
