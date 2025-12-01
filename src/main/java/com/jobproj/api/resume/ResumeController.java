@@ -7,22 +7,25 @@ import com.jobproj.api.resume.ResumeDto.CreateRequest;
 import com.jobproj.api.resume.ResumeDto.Response;
 import com.jobproj.api.resume.ResumeDto.UpdateRequest;
 import com.jobproj.api.security.CurrentUser;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.validation.Valid;
-
+import java.io.IOException;
 import java.net.URI;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -32,236 +35,242 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 융합프로젝트 김태형 12주차 :
- *  - 이력서 CRUD + PDF 내보내기 API 컨트롤러
- *  - JSON API (/api/resumes/**) 를 담당한다.
- */
 @RestController
 @RequestMapping(value = "/api/resumes", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Resume", description = "이력서 CRUD")
 public class ResumeController {
 
-  private final ResumeService service;
+    private static final Logger log =
+        LoggerFactory.getLogger(ResumeController.class);
 
-  // 융합프로젝트 김태형 12주차 : 이력서 PDF 바이트 생성 전용 서비스
-  private final ResumePdfService pdfService;
+    private final ResumeService service;
+    private final ResumePdfService pdfService;
+    private final CurrentUser currentUser;
 
-  private final CurrentUser currentUser;
-
-  public ResumeController(
-      ResumeService service, ResumePdfService pdfService, CurrentUser currentUser) {
-    this.service = service;
-    this.pdfService = pdfService;
-    this.currentUser = currentUser;
-  }
-
-  @Operation(
-      summary = "이력서 생성",
-      description = "요청 본문의 값 검증 후, 로그인 사용자(토큰)의 소유로 생성합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "201", description = "생성됨"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "400", description = "Validation 오류"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "403", description = "소유권 위반(Owner mismatch 정책 위배 시)")
-  })
-  @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<ApiResponse<Long>> create(@Valid @RequestBody CreateRequest req) {
-    Long usersId = currentUser.id(); // 로그인 사용자 id
-    Long id = service.create(usersId, req); // 소유자 id와 함께 생성
-    return ResponseEntity.created(URI.create("/api/resumes/" + id))
-        .body(ApiResponse.ok("created", id));
-  }
-
-  @Operation(
-      summary = "이력서 단건 조회",
-      description = "소유권(로그인 사용자) 검사 후 단건을 반환합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "200", description = "OK"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "403", description = "소유권 위반"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "404", description = "미존재")
-  })
-  @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<Response>> get(@PathVariable Long id) {
-    Long usersId = currentUser.id(); // 소유권 강제
-    var opt = service.get(id, usersId); // (id, usersId) 시그니처
-    return opt
-        .map(r -> ResponseEntity.ok(ApiResponse.ok(r)))
-        .orElseGet(
-            () ->
-                ResponseEntity.status(404)
-                    .body(ApiResponse.fail("NOT_FOUND", "resume not found")));
-  }
-
-  @Operation(
-      summary = "이력서 목록 조회",
-      description = "로그인 사용자의 이력서를 페이지네이션/정렬/검색으로 조회합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "200", description = "OK"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증")
-  })
-  @GetMapping
-  public ResponseEntity<ApiResponse<PageResponse<Response>>> list(
-      @Parameter(description = "페이지(0-base)") @RequestParam(required = false) Integer page,
-      @Parameter(description = "페이지 사이즈(1~100)")
-          @RequestParam(required = false)
-          Integer size,
-      @Parameter(description = "정렬규칙 예) createdAt,desc")
-          @RequestParam(required = false)
-          String sort,
-      @Parameter(description = "검색어") @RequestParam(required = false) String keyword) {
-
-    Long usersId = currentUser.id(); // 토큰에서 소유자 추출
-    var pr = new PageRequest(page, size, sort);
-    var res = service.list(pr, usersId, keyword);
-    return ResponseEntity.ok(ApiResponse.ok(res));
-  }
-
-  @Operation(
-      summary = "이력서 수정",
-      description = "소유권 검사 후 부분 업데이트(PATCH)합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "200", description = "수정 완료"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "400", description = "Validation 오류"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "403", description = "소유권 위반"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "404", description = "미존재")
-  })
-  @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<ApiResponse<Void>> update(
-      @PathVariable Long id, @Valid @RequestBody UpdateRequest req) {
-
-    Long usersId = currentUser.id(); // 소유권 강제
-    boolean ok = service.update(id, usersId, req);
-    return ok
-        ? ResponseEntity.ok(ApiResponse.ok(null))
-        : ResponseEntity.status(404)
-            .body(ApiResponse.fail("NOT_FOUND", "resume not found"));
-  }
-
-  @Operation(
-      summary = "이력서 삭제",
-      description = "소유권 검사 후 삭제합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "200", description = "삭제 완료"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "403", description = "소유권 위반"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "404", description = "미존재")
-  })
-  @DeleteMapping("/{id}")
-  public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-    Long usersId = currentUser.id(); // 소유권 강제
-    boolean ok = service.delete(id, usersId);
-    return ok
-        ? ResponseEntity.ok(ApiResponse.ok(null))
-        : ResponseEntity.status(404)
-            .body(ApiResponse.fail("NOT_FOUND", "resume not found"));
-  }
-
-  // ------------------------------------------------------------
-  // 융합프로젝트 김태형 12주차 :
-  //  이력서 PDF 내보내기 API
-  //   - GET /api/resumes/{id}/pdf?template=번호
-  //   - 쿼리파라미터로 템플릿 번호(1~6)를 받고,
-  //     ResumePdfService 에게 넘겨서 템플릿별 레이아웃으로 PDF 생성.
-  // ------------------------------------------------------------
-  @Operation(
-      summary = "이력서 PDF 다운로드",
-      description = "소유권을 검사한 뒤 해당 이력서를 PDF 파일로 다운로드합니다.",
-      security = { @SecurityRequirement(name = "cookieAuth") })
-  @ApiResponses({
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "200", description = "PDF 다운로드"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "401", description = "미인증"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "403", description = "소유권 위반"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(
-          responseCode = "404", description = "미존재")
-  })
-  @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-  public ResponseEntity<byte[]> exportPdf(
-      @PathVariable Long id,
-      @RequestParam(name = "template", required = false) Integer template) {
-
-    Long usersId = currentUser.id();
-
-    // 융합프로젝트 김태형 12주차 : 템플릿 번호 유효성 체크(1~6, 그 외는 1로 처리)
-    int templateIndex =
-        (template == null || template < 1 || template > 6) ? 1 : template.intValue();
-
-    byte[] pdfBytes = pdfService.generateResumePdf(id, usersId, templateIndex);
-    if (pdfBytes == null || pdfBytes.length == 0) {
-      // 이력서가 없거나 소유권 위반인 경우
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    public ResumeController(
+        ResumeService service,
+        ResumePdfService pdfService,
+        CurrentUser currentUser
+    ) {
+        this.service = service;
+        this.pdfService = pdfService;
+        this.currentUser = currentUser;
     }
 
-    String filename = "resume-" + id + ".pdf";
+    // ---- 기본 CRUD ----
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_PDF);
-    headers.setContentLength(pdfBytes.length);
-    headers.setContentDispositionFormData("attachment", filename);
+    @Operation(
+        summary = "이력서 생성",
+        description = "로그인 사용자 소유로 이력서를 생성합니다.",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201", description = "생성됨"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", description = "Validation 오류"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", description = "미인증")
+    })
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Long>> create(
+        @Valid @RequestBody CreateRequest req
+    ) {
+        Long usersId = currentUser.id();
+        Long id = service.create(usersId, req);
+        return ResponseEntity.created(URI.create("/api/resumes/" + id))
+            .body(ApiResponse.ok("created", id));
+    }
 
-    return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-  }
+    @Operation(
+        summary = "이력서 단건 조회",
+        description = "소유권 검사 후 단건 반환",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<Response>> get(@PathVariable Long id) {
+        Long usersId = currentUser.id();
+        var opt = service.get(id, usersId);
+        return opt
+            .map(r -> ResponseEntity.ok(ApiResponse.ok(r)))
+            .orElseGet(
+                () -> ResponseEntity.status(404)
+                    .body(ApiResponse.fail("NOT_FOUND", "resume not found"))
+            );
+    }
+
+    @Operation(
+        summary = "이력서 목록 조회",
+        description = "로그인 사용자의 이력서 페이지 조회",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<Response>>> list(
+        @Parameter(description = "페이지(0-base)") @RequestParam(required = false) Integer page,
+        @Parameter(description = "페이지 사이즈(1~100)") @RequestParam(required = false) Integer size,
+        @Parameter(description = "정렬규칙 예) createdAt,desc") @RequestParam(required = false) String sort,
+        @Parameter(description = "검색어") @RequestParam(required = false) String keyword
+    ) {
+        Long usersId = currentUser.id();
+        var pr = new PageRequest(page, size, sort);
+        var res = service.list(pr, usersId, keyword);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    @Operation(
+        summary = "이력서 수정",
+        description = "소유권 검사 후 PATCH",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Void>> update(
+        @PathVariable Long id,
+        @Valid @RequestBody UpdateRequest req
+    ) {
+        Long usersId = currentUser.id();
+        boolean ok = service.update(id, usersId, req);
+        return ok
+            ? ResponseEntity.ok(ApiResponse.ok(null))
+            : ResponseEntity.status(404)
+                .body(ApiResponse.fail("NOT_FOUND", "resume not found"));
+    }
+
+    @Operation(
+        summary = "이력서 삭제",
+        description = "소유권 검사 후 삭제",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        Long usersId = currentUser.id();
+        boolean ok = service.delete(id, usersId);
+        return ok
+            ? ResponseEntity.ok(ApiResponse.ok(null))
+            : ResponseEntity.status(404)
+                .body(ApiResponse.fail("NOT_FOUND", "resume not found"));
+    }
+
+    // ---- 프로필 사진 업로드 ----
+
+    @Operation(
+        summary = "이력서 프로필 사진 업로드",
+        description = "프로필 이미지를 업로드하고 URL을 반환",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @PostMapping(
+        value = "/{id}/profile-image",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ProfileImageResponse>> uploadProfileImage(
+        @PathVariable Long id,
+        @RequestParam("file") MultipartFile file
+    ) {
+        Long usersId = currentUser.id();
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.fail("BAD_REQUEST", "파일이 비어 있습니다."));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null
+            || (!contentType.startsWith("image/jpeg")
+            && !contentType.startsWith("image/png"))) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.fail(
+                    "BAD_REQUEST",
+                    "jpg, png 형식의 이미지 파일만 업로드할 수 있습니다."));
+        }
+
+        try {
+            String rootDir = System.getProperty("user.dir");
+            Path uploadDir = Paths.get(rootDir, "uploads", "resume-profile")
+                .toAbsolutePath()
+                .normalize();
+            Files.createDirectories(uploadDir);
+
+            String originalName = file.getOriginalFilename();
+            String ext = StringUtils.getFilenameExtension(originalName);
+            if (ext == null || ext.isBlank()) {
+                ext = "jpg";
+            }
+
+            String filename =
+                "resume-" + id + "-" + System.currentTimeMillis() + "." + ext;
+            Path target = uploadDir.resolve(filename);
+            file.transferTo(target.toFile());
+
+            String url = "/uploads/resume-profile/" + filename;
+
+            String savedUrl = service.updateProfileImage(id, usersId, url);
+            ProfileImageResponse body = new ProfileImageResponse(savedUrl);
+            return ResponseEntity.ok(ApiResponse.ok(body));
+        } catch (IOException e) {
+            log.error("프로필 이미지 저장 실패 (resumeId={}, userId={})", id, usersId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.fail(
+                    "IO_ERROR",
+                    "파일 저장 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    public static class ProfileImageResponse {
+        private final String profileImageUrl;
+
+        public ProfileImageResponse(String profileImageUrl) {
+            this.profileImageUrl = profileImageUrl;
+        }
+
+        public String getProfileImageUrl() {
+            return profileImageUrl;
+        }
+    }
+
+    // ---- PDF 내보내기 ----
+
+    @Operation(
+        summary = "이력서 PDF 다운로드",
+        description = "이력서를 PDF로 다운로드",
+        security = {@SecurityRequirement(name = "cookieAuth")})
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportPdf(
+        @PathVariable Long id,
+        @RequestParam(name = "template", required = false) Integer template
+    ) {
+        Long usersId = currentUser.id();
+        int templateIndex =
+            (template == null || template < 1 || template > 6)
+                ? 1 : template.intValue();
+
+        byte[] pdfBytes = pdfService.generateResumePdf(id, usersId, templateIndex);
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        String filename = "resume-" + id + ".pdf";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdfBytes.length);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
 }
 
-/* ============================================================
- * 융합프로젝트 김태형 12주차 :
- * HTML 이력서 화면용 MVC 컨트롤러.
- *  - /resume/make → 내 초안(이력서 목록) 페이지(templates/resume/Make.html)
- *  - /resume/edit → 이력서 편집 페이지(templates/resume/resume-edit.html)
- *
- * API(JSON)용 ResumeController와 분리해서,
- * 뷰 이름만 반환하고 실제 데이터(로그인 사용자 정보 등)는
- * 프론트 JS(auth.js)가 /api/users/me 같은 엔드포인트를 호출해 채우도록 한다.
- * ============================================================ */
+/* ====== HTML 뷰용 컨트롤러 ====== */
 @Controller
 @RequestMapping("/resume")
 class ResumePageController {
 
-  private final CurrentUser currentUser;
+    private final CurrentUser currentUser;
 
-  public ResumePageController(CurrentUser currentUser) {
-    this.currentUser = currentUser;
-  }
+    public ResumePageController(CurrentUser currentUser) {
+        this.currentUser = currentUser;
+    }
 
-  // 융합프로젝트 김태형 12주차 : 내 이력서 초안 목록 페이지 매핑
-  @GetMapping("/make")
-  public String showMakePage() {
-    return "resume/Make";
-  }
+    @GetMapping("/make")
+    public String showMakePage() {
+        return "resume/Make";
+    }
 
-  // 융합프로젝트 김태형 12주차 : 이력서 편집 페이지 매핑
-  @GetMapping("/edit")
-  public String showEditPage() {
-    return "resume/resume-edit";
-  }
+    @GetMapping("/edit")
+    public String showEditPage() {
+        return "resume/resume-edit";
+    }
 }

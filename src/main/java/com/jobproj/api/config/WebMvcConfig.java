@@ -1,22 +1,34 @@
 package com.jobproj.api.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/auth/login").setViewName("auth/login");
-        registry.addViewController("/Make").setViewName("resume/Make");
-        registry.addViewController("/auth/signup").setViewName("auth/signup");
-        // 2233076 12주차 추가 : 내정보 페이지
-        registry.addViewController("/mypage").setViewName("user_page/mypage");
-        // 융합프로젝틑 김태형 12주차 : 새 이력서 편집 페이지
-        registry.addViewController("/resume/edit").setViewName("resume/resume-edit");
 
-        // 필요 시 /home.html 직접 접근도 열고 싶다면 아래 추가
-        // registry.addViewController("/home.html").setViewName("home");
-    }
+  @Override
+  public void addViewControllers(ViewControllerRegistry registry) {
+    registry.addViewController("/auth/login").setViewName("auth/login");
+    registry.addViewController("/auth/signup").setViewName("auth/signup");
+    registry.addViewController("/mypage").setViewName("user_page/mypage");
+
+    // 옛 URL 대응용 (필요 없으면 지워도 됨)
+    registry.addViewController("/Make").setViewName("resume/Make");
+
+    // /resume/edit 매핑은 ResumePageController에서 처리하므로 여기서는 제거
+    // registry.addViewController("/resume/edit").setViewName("resume/resume-edit");
+  }
+
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    // 실행 디렉토리 기준 uploads 폴더 절대 경로
+    String rootDir = System.getProperty("user.dir").replace("\\", "/");
+    String uploadsLocation = "file:" + rootDir + "/uploads/";
+
+    registry
+        .addResourceHandler("/uploads/**")
+        .addResourceLocations(uploadsLocation);
+  }
 }

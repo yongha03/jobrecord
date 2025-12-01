@@ -26,7 +26,7 @@ public class ResumeDto {
     @NotNull(message = "공개 여부는 필수입니다.")
     public Boolean isPublic;
 
-    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드
     @Size(max = 50, message = "이름은 50자 이내여야 합니다.")
     public String name;
 
@@ -53,7 +53,7 @@ public class ResumeDto {
     @NotNull(message = "공개 여부는 필수입니다.")
     public Boolean isPublic;
 
-    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드
     @Size(max = 50, message = "이름은 50자 이내여야 합니다.")
     public String name;
 
@@ -67,7 +67,7 @@ public class ResumeDto {
   }
 
   public static class Response {
-    // (응답 DTO는 검증이 필요 없으므로 수정사항 없음)
+    // (응답 DTO는 검증이 필요 없으므로 Validation 없음)
     public Long resumeId;
     public Long usersId;
     public String title;
@@ -76,13 +76,17 @@ public class ResumeDto {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
-    // 융합프로젝트 김태형 12주차 : 응답 DTO에 이력서 기본 정보(이름/전화번호/이메일/생년월일) 필드 추가
+    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보(이름/전화번호/이메일/생년월일)
     public String name;
     public String phone;
     public String email;
     public LocalDate birthDate;
 
-    // 융합프로젝트 김태형 12주차 : 이력서 기본 정보 필드를 포함하는 생성자 확장
+    // 융합프로젝트 김태형 12주차 : 프로필 사진 URL
+    public String profileImageUrl;
+
+    // 융합프로젝트 김태형 12주차 :
+    //  이력서 기본 정보 + 프로필 사진 필드를 포함하는 생성자
     public Response(
         Long resumeId,
         Long usersId,
@@ -94,7 +98,8 @@ public class ResumeDto {
         String name,
         String phone,
         String email,
-        LocalDate birthDate) {
+        LocalDate birthDate,
+        String profileImageUrl) {
       this.resumeId = resumeId;
       this.usersId = usersId;
       this.title = title;
@@ -106,6 +111,7 @@ public class ResumeDto {
       this.phone = phone;
       this.email = email;
       this.birthDate = birthDate;
+      this.profileImageUrl = profileImageUrl;
     }
   }
 }

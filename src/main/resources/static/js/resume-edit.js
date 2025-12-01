@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //  - 내 초안 페이지 이동, 로그인 사용자 정보 표시
     //  - 이력서(학력/경력/프로젝트/스킬) 저장 + DB 값 다시 불러오기 + 요약(summary) 저장
     //  - 이력서 기본 정보(이름/전화번호/이메일/생년월일)를 PATCH 시 항상 함께 전송
+    //  - 프로필 사진(증명사진) 업로드 + DB URL 저장 + 미리보기 표시
 
     // ------------------------------------------------------------
     // 융합프로젝트 김태형 12주차 : 이력서 ID 파라미터 추출 + API 공통 유틸
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = nameEl ? nameEl.value.trim() : '';
         const phone = phoneEl ? phoneEl.value.trim() : '';
         const email = emailEl ? emailEl.value.trim() : '';
-        const birthDate = birthEl && birthEl.value ? birthEl.value : null; // "YYYY-MM-DD" or null
+        const birthDate = birthEl && birthEl.value ? birthEl.value : null;
 
         return {
             name,
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 융합프로젝트 김태형 12주차 :
-    //  이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보)를 조회해서
+    //  이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보, 사진)를 조회해서
     //  상단/요약 입력칸 + 기본 정보 입력칸 + 미리보기에 반영
     // ------------------------------------------------------------
     async function loadResumeMeta(resumeId) {
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const phoneInput = document.getElementById('input-phone');
         const emailInput = document.getElementById('input-email');
         const birthInput = document.getElementById('input-birth');
+        const photoBox = document.getElementById('preview-photo-box');
 
         if (!resumeId || !hasAuth) return;
 
@@ -185,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 resumeMeta.summary = data.summary;
                 if (summaryInput) {
                     summaryInput.value = data.summary;
-                    // 미리보기와 바인딩되어 있으므로 input 이벤트 발생
                     summaryInput.dispatchEvent(new Event('input'));
                 } else if (previewSummary) {
                     previewSummary.textContent = data.summary;
@@ -195,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 nameSpan.textContent = data.title;
             }
 
-            // 융합프로젝트 김태형 12주차 : 서버에 저장된 기본 정보도 폼/미리보기에 채우기
+            // 기본 정보 채우기
             if (nameInput && data.name) {
                 nameInput.value = data.name;
                 nameInput.dispatchEvent(new Event('input'));
@@ -209,9 +210,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 emailInput.dispatchEvent(new Event('input'));
             }
             if (birthInput && data.birthDate) {
-                // data.birthDate는 "YYYY-MM-DD" 형식이라고 가정
                 birthInput.value = data.birthDate;
                 birthInput.dispatchEvent(new Event('input'));
+            }
+
+            // 융합프로젝트 김태형 12주차 : 서버에 저장된 프로필 사진 URL 반영
+            if (photoBox) {
+                if (data.profileImageUrl) {
+                    photoBox.innerHTML =
+                        `<img src="${data.profileImageUrl}" alt="사진">`;
+                } else {
+                    photoBox.textContent = '사진 영역';
+                }
             }
         } catch (err) {
             console.warn('이력서 메타정보 조회 실패(새 이력서일 수 있음):', err);
@@ -223,16 +233,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------
 
     async function saveEducationSection(resumeId) {
-        const school = document.getElementById('input-edu-school')?.value.trim() || '';
-        const major = document.getElementById('input-edu-major')?.value.trim() || '';
-        const degree = document.getElementById('input-edu-degree')?.value.trim() || '';
-        const period = document.getElementById('input-edu-period')?.value.trim() || '';
+        const school =
+            document.getElementById('input-edu-school')?.value.trim() || '';
+        const major =
+            document.getElementById('input-edu-major')?.value.trim() || '';
+        const degree =
+            document.getElementById('input-edu-degree')?.value.trim() || '';
+        const period =
+            document.getElementById('input-edu-period')?.value.trim() || '';
 
-        const page = await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
+        const page =
+            await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
         if (page && Array.isArray(page.content)) {
             await Promise.all(
                 page.content.map((edu) =>
-                    apiJson(`/api/educations/${edu.educationId}`, { method: 'DELETE' })
+                    apiJson(`/api/educations/${edu.educationId}`, {
+                        method: 'DELETE'
+                    })
                 )
             );
         }
@@ -261,7 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(existing)) {
             await Promise.all(
                 existing.map((exp) =>
-                    apiJson(`/api/experiences/${exp.experienceId}`, { method: 'DELETE' })
+                    apiJson(`/api/experiences/${exp.experienceId}`, {
+                        method: 'DELETE'
+                    })
                 )
             );
         }
@@ -272,10 +291,18 @@ document.addEventListener('DOMContentLoaded', () => {
         groups.forEach((group) => {
             const idx = group.dataset.expIndex;
 
-            const company = document.getElementById(`input-exp${idx}-company`)?.value.trim() || '';
-            const position = document.getElementById(`input-exp${idx}-position`)?.value.trim() || '';
-            const period = document.getElementById(`input-exp${idx}-period`)?.value.trim() || '';
-            const desc = document.getElementById(`input-exp${idx}-desc`)?.value.trim() || '';
+            const company =
+                document.getElementById(`input-exp${idx}-company`)
+                    ?.value.trim() || '';
+            const position =
+                document.getElementById(`input-exp${idx}-position`)
+                    ?.value.trim() || '';
+            const period =
+                document.getElementById(`input-exp${idx}-period`)
+                    ?.value.trim() || '';
+            const desc =
+                document.getElementById(`input-exp${idx}-desc`)
+                    ?.value.trim() || '';
 
             if (!company && !position && !period && !desc) return;
 
@@ -304,7 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(existing)) {
             await Promise.all(
                 existing.map((proj) =>
-                    apiJson(`/api/projects/${proj.projectId}`, { method: 'DELETE' })
+                    apiJson(`/api/projects/${proj.projectId}`, {
+                        method: 'DELETE'
+                    })
                 )
             );
         }
@@ -315,11 +344,21 @@ document.addEventListener('DOMContentLoaded', () => {
         groups.forEach((group) => {
             const idx = group.dataset.projIndex;
 
-            const name = document.getElementById(`input-proj${idx}-name`)?.value.trim() || '';
-            const role = document.getElementById(`input-proj${idx}-role`)?.value.trim() || '';
-            const period = document.getElementById(`input-proj${idx}-period`)?.value.trim() || '';
-            const tech = document.getElementById(`input-proj${idx}-tech`)?.value.trim() || '';
-            const desc = document.getElementById(`input-proj${idx}-desc`)?.value.trim() || '';
+            const name =
+                document.getElementById(`input-proj${idx}-name`)
+                    ?.value.trim() || '';
+            const role =
+                document.getElementById(`input-proj${idx}-role`)
+                    ?.value.trim() || '';
+            const period =
+                document.getElementById(`input-proj${idx}-period`)
+                    ?.value.trim() || '';
+            const tech =
+                document.getElementById(`input-proj${idx}-tech`)
+                    ?.value.trim() || '';
+            const desc =
+                document.getElementById(`input-proj${idx}-desc`)
+                    ?.value.trim() || '';
 
             if (!name && !role && !period && !tech && !desc) return;
 
@@ -366,12 +405,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter((s) => s.length > 0);
 
         for (const name of names) {
-            const searchRes = await apiJson(`/api/skills?q=${encodeURIComponent(name)}&limit=50`);
+            const searchRes =
+                await apiJson(`/api/skills?q=${encodeURIComponent(name)}&limit=50`);
             let skillId = null;
 
             if (Array.isArray(searchRes) && searchRes.length > 0) {
                 const found = searchRes.find(
-                    (s) => s.name && s.name.toLowerCase() === name.toLowerCase()
+                    (s) =>
+                        s.name &&
+                        s.name.toLowerCase() === name.toLowerCase()
                 );
                 if (found) {
                     skillId = found.skillId;
@@ -406,8 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------
     async function loadEducationSectionFromApi(resumeId) {
         try {
-            const page = await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
-            if (!page || !Array.isArray(page.content) || page.content.length === 0) return;
+            const page =
+                await apiJson(`/api/resumes/${resumeId}/educations?page=0&size=50`);
+            if (!page || !Array.isArray(page.content) || page.content.length === 0) {
+                return;
+            }
 
             const edu = page.content[0];
 
@@ -429,7 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 degreeInput.dispatchEvent(new Event('input'));
             }
 
-            const periodText = formatPeriod(edu.startDate, edu.endDate, edu.current === true);
+            const periodText =
+                formatPeriod(edu.startDate, edu.endDate, edu.current === true);
             if (periodInput && periodText) {
                 periodInput.value = periodText;
                 periodInput.dispatchEvent(new Event('input'));
@@ -444,20 +490,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const list = await apiJson(`/api/resumes/${resumeId}/experiences`);
             if (!Array.isArray(list) || list.length === 0) return;
 
-            // 기본 1개는 이미 있으므로, 나머지 개수만큼 버튼 클릭으로 동적 생성
             for (let i = 2; i <= list.length; i++) {
                 if (window.addExperienceBtnClick) {
-                    window.addExperienceBtnClick(); // 아래에서 전역 함수로 노출
+                    window.addExperienceBtnClick();
                 }
             }
 
             list.forEach((exp, index) => {
                 const idx = index + 1;
 
-                const companyInput = document.getElementById(`input-exp${idx}-company`);
-                const positionInput = document.getElementById(`input-exp${idx}-position`);
-                const periodInput = document.getElementById(`input-exp${idx}-period`);
-                const descInput = document.getElementById(`input-exp${idx}-desc`);
+                const companyInput =
+                    document.getElementById(`input-exp${idx}-company`);
+                const positionInput =
+                    document.getElementById(`input-exp${idx}-position`);
+                const periodInput =
+                    document.getElementById(`input-exp${idx}-period`);
+                const descInput =
+                    document.getElementById(`input-exp${idx}-desc`);
 
                 const periodText = formatPeriod(
                     exp.startDate,
@@ -501,11 +550,16 @@ document.addEventListener('DOMContentLoaded', () => {
             list.forEach((proj, index) => {
                 const idx = index + 1;
 
-                const nameInput = document.getElementById(`input-proj${idx}-name`);
-                const roleInput = document.getElementById(`input-proj${idx}-role`);
-                const periodInput = document.getElementById(`input-proj${idx}-period`);
-                const techInput = document.getElementById(`input-proj${idx}-tech`);
-                const descInput = document.getElementById(`input-proj${idx}-desc`);
+                const nameInput =
+                    document.getElementById(`input-proj${idx}-name`);
+                const roleInput =
+                    document.getElementById(`input-proj${idx}-role`);
+                const periodInput =
+                    document.getElementById(`input-proj${idx}-period`);
+                const techInput =
+                    document.getElementById(`input-proj${idx}-tech`);
+                const descInput =
+                    document.getElementById(`input-proj${idx}-desc`);
 
                 const periodText = formatPeriod(
                     proj.startDate,
@@ -586,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindField('input-birth', 'preview-birth');
     bindField('input-summary', 'preview-summary');
 
-    // 융합프로젝트 김태형 12주차 : 요약 입력 시 resumeMeta.summary 도 같이 갱신
+    // 요약 입력 시 resumeMeta.summary도 동기화
     const summaryInputEl = document.getElementById('input-summary');
     if (summaryInputEl) {
         summaryInputEl.addEventListener('input', (e) => {
@@ -672,21 +726,80 @@ document.addEventListener('DOMContentLoaded', () => {
     setupProjectRoleTechBinding(1);
 
     // ------------------------------------------------------------
-    // 사진 업로드 미리보기
+    // 융합프로젝트 김태형 12주차 :
+    //  프로필 사진 업로드 API 호출 + 미리보기 반영 헬퍼
+    //   - POST /api/resumes/{id}/profile-image (multipart/form-data)
+    //   - 응답의 profileImageUrl을 사용해 미리보기 이미지도 서버 URL로 교체
+    // ------------------------------------------------------------
+    async function uploadProfileImageToServer(resumeId, file, photoBox) {
+        if (!resumeId) {
+            alert('이력서 ID가 없습니다. URL에 ?resumeId=가 포함되어야 합니다.');
+            return;
+        }
+        if (!hasAuth) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        if (!file) {
+            alert('업로드할 파일이 없습니다.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await Auth.apiFetch(
+                `/api/resumes/${resumeId}/profile-image`,
+                {
+                    method: 'POST',
+                    body: formData
+                }
+            );
+
+            const body = await res.json();
+            if (!body || !body.success) {
+                const msg = (body && body.message) ? body.message : '업로드 실패';
+                throw new Error(msg);
+            }
+
+            const data = body.data || {};
+            const url = data.profileImageUrl;
+
+            if (url && photoBox) {
+                photoBox.innerHTML = `<img src="${url}" alt="사진">`;
+            }
+
+            alert('프로필 사진이 저장되었습니다.');
+        } catch (err) {
+            console.error('프로필 사진 업로드 실패:', err);
+            alert('프로필 사진 업로드 중 오류가 발생했습니다.\n' + err.message);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // 융합프로젝트 김태형 12주차 : 사진 업로드 (로컬 미리보기 + 서버 업로드)
     // ------------------------------------------------------------
     const photoInput = document.getElementById('input-photo');
     const photoBox = document.getElementById('preview-photo-box');
 
     if (photoInput && photoBox) {
-        photoInput.addEventListener('change', function(e) {
+        photoInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
+            // 1) 로컬 미리보기 (사용자 즉시 확인용)
             const reader = new FileReader();
             reader.onload = function(event) {
-                photoBox.innerHTML = `<img src="${event.target.result}" alt="사진">`;
+                photoBox.innerHTML =
+                    `<img src="${event.target.result}" alt="사진">`;
             };
             reader.readAsDataURL(file);
+
+            // 2) 서버 업로드 (DB에 URL 저장)
+            if (resumeId && hasAuth) {
+                await uploadProfileImageToServer(resumeId, file, photoBox);
+            }
         });
     }
 
@@ -763,7 +876,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let expCount = 1;
 
     const experienceContainer = document.getElementById('experience-container');
-    const previewExperienceList = document.getElementById('preview-experience-list');
+    const previewExperienceList =
+        document.getElementById('preview-experience-list');
     const addExperienceBtn = document.getElementById('add-experience-btn');
 
     if (experienceContainer && previewExperienceList && addExperienceBtn) {
@@ -775,8 +889,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newIndex = expCount + 1;
 
-            const baseGroup = experienceContainer.querySelector('.experience-group[data-exp-index="1"]');
-            const basePreview = previewExperienceList.querySelector('.resume-item[data-exp-index="1"]');
+            const baseGroup =
+                experienceContainer.querySelector(
+                    '.experience-group[data-exp-index="1"]'
+                );
+            const basePreview =
+                previewExperienceList.querySelector(
+                    '.resume-item[data-exp-index="1"]'
+                );
             if (!baseGroup || !basePreview) return;
 
             const groupClone = baseGroup.cloneNode(true);
@@ -794,7 +914,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.id = newId;
                 input.value = '';
 
-                const label = groupClone.querySelector(`label[for="${oldId}"]`);
+                const label =
+                    groupClone.querySelector(`label[for="${oldId}"]`);
                 if (label) {
                     label.setAttribute('for', newId);
                 }
@@ -809,7 +930,8 @@ document.addEventListener('DOMContentLoaded', () => {
             previewElements.forEach((el) => {
                 const oldId = el.id;
                 if (oldId.startsWith('preview-exp1-')) {
-                    const newId = oldId.replace('preview-exp1-', `preview-exp${newIndex}-`);
+                    const newId =
+                        oldId.replace('preview-exp1-', `preview-exp${newIndex}-`);
                     el.id = newId;
                     el.textContent = '';
                 }
@@ -817,17 +939,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             previewExperienceList.appendChild(previewClone);
 
-            bindField(`input-exp${newIndex}-company`, `preview-exp${newIndex}-company`);
-            bindField(`input-exp${newIndex}-position`, `preview-exp${newIndex}-position`);
-            bindField(`input-exp${newIndex}-period`, `preview-exp${newIndex}-period`);
-            bindField(`input-exp${newIndex}-desc`, `preview-exp${newIndex}-desc`);
+            bindField(
+                `input-exp${newIndex}-company`,
+                `preview-exp${newIndex}-company`
+            );
+            bindField(
+                `input-exp${newIndex}-position`,
+                `preview-exp${newIndex}-position`
+            );
+            bindField(
+                `input-exp${newIndex}-period`,
+                `preview-exp${newIndex}-period`
+            );
+            bindField(
+                `input-exp${newIndex}-desc`,
+                `preview-exp${newIndex}-desc`
+            );
 
             expCount = newIndex;
         };
 
         addExperienceBtn.addEventListener('click', addExperience);
 
-        // 융합프로젝트 김태형 12주차 : 로딩 시에도 호출할 수 있도록 전역 함수로 노출
+        // 로딩 시 API에서 데이터 개수에 맞게 호출할 수 있도록 전역 함수로 노출
         window.addExperienceBtnClick = addExperience;
     }
 
@@ -838,7 +972,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let projCount = 1;
 
     const projectContainer = document.getElementById('project-container');
-    const previewProjectList = document.getElementById('preview-project-list');
+    const previewProjectList =
+        document.getElementById('preview-project-list');
     const addProjectBtn = document.getElementById('add-project-btn');
 
     if (projectContainer && previewProjectList && addProjectBtn) {
@@ -851,9 +986,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const newIndex = projCount + 1;
 
             const baseGroup =
-                projectContainer.querySelector('.project-group[data-proj-index="1"]');
+                projectContainer.querySelector(
+                    '.project-group[data-proj-index="1"]'
+                );
             const basePreview =
-                previewProjectList.querySelector('.resume-item[data-proj-index="1"]');
+                previewProjectList.querySelector(
+                    '.resume-item[data-proj-index="1"]'
+                );
             if (!baseGroup || !basePreview) return;
 
             const groupClone = baseGroup.cloneNode(true);
@@ -871,7 +1010,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.id = newId;
                 input.value = '';
 
-                const label = groupClone.querySelector(`label[for="${oldId}"]`);
+                const label =
+                    groupClone.querySelector(`label[for="${oldId}"]`);
                 if (label) {
                     label.setAttribute('for', newId);
                 }
@@ -886,7 +1026,11 @@ document.addEventListener('DOMContentLoaded', () => {
             previewElements.forEach((el) => {
                 const oldId = el.id;
                 if (oldId.startsWith('preview-proj1-')) {
-                    const newId = oldId.replace('preview-proj1-', `preview-proj${newIndex}-`);
+                    const newId =
+                        oldId.replace(
+                            'preview-proj1-',
+                            `preview-proj${newIndex}-`
+                        );
                     el.id = newId;
                     el.textContent = '';
                 }
@@ -894,9 +1038,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             previewProjectList.appendChild(previewClone);
 
-            bindField(`input-proj${newIndex}-name`, `preview-proj${newIndex}-name`);
-            bindField(`input-proj${newIndex}-period`, `preview-proj${newIndex}-period`);
-            bindField(`input-proj${newIndex}-desc`, `preview-proj${newIndex}-desc`);
+            bindField(
+                `input-proj${newIndex}-name`,
+                `preview-proj${newIndex}-name`
+            );
+            bindField(
+                `input-proj${newIndex}-period`,
+                `preview-proj${newIndex}-period`
+            );
+            bindField(
+                `input-proj${newIndex}-desc`,
+                `preview-proj${newIndex}-desc`
+            );
             setupProjectRoleTechBinding(newIndex);
 
             projCount = newIndex;
@@ -904,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addProjectBtn.addEventListener('click', addProject);
 
-        // 융합프로젝트 김태형 12주차 : 로딩 시에도 호출할 수 있도록 전역 함수로 노출
+        // 로딩 시 API에서 데이터 개수에 맞게 호출할 수 있도록 전역 함수로 노출
         window.addProjectBtnClick = addProject;
     }
 
@@ -994,8 +1147,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                // 융합프로젝트 김태형 12주차 :
-                //  제목 변경 시에도 기본 정보(name/phone/email/birthDate)를 함께 PATCH
                 const payload = buildResumePatchPayload(trimmed);
 
                 await apiJson(`/api/resumes/${resumeId}`, {
@@ -1035,10 +1186,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const nameSpan = document.getElementById('file-name-display');
-                const currentTitle = (nameSpan?.textContent || '새 이력서').trim();
+                const currentTitle =
+                    (nameSpan?.textContent || '새 이력서').trim();
 
-                // 융합프로젝트 김태형 12주차 :
-                //  현재 입력된 요약 + 기본 정보를 포함해 PATCH payload 구성
                 const payload = buildResumePatchPayload(currentTitle);
 
                 await apiJson(`/api/resumes/${resumeId}`, {
@@ -1046,7 +1196,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(payload)
                 });
 
-                // 섹션 저장
                 await saveAllSections(resumeId);
                 alert('이력서 내용이 저장되었습니다.');
             } catch (err) {
@@ -1077,7 +1226,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nameSpan = document.getElementById('file-name-display');
             const current = (nameSpan?.textContent || '새 이력서').trim();
-            const answer = window.prompt('저장할 이력서 이름을 입력하세요.', current);
+            const answer =
+                window.prompt('저장할 이력서 이름을 입력하세요.', current);
             if (answer === null) return;
             const title = answer.trim();
             if (!title) {
@@ -1090,8 +1240,6 @@ document.addEventListener('DOMContentLoaded', () => {
             createResumeBtn.textContent = '저장 중...';
 
             try {
-                // 융합프로젝트 김태형 12주차 :
-                //  입력된 제목 + 요약 + 기본 정보를 한꺼번에 PATCH
                 const payload = buildResumePatchPayload(title);
 
                 await apiJson(`/api/resumes/${resumeId}`, {

@@ -15,60 +15,85 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ResumeService {
 
-  private final ResumeRepository repo;
+    private final ResumeRepository repo;
 
-  /** JWT에서 구한 usersId를 인자로 받아 생성 */
-  @Transactional
-  public Long create(Long usersId, CreateRequest req) {
-    // 생성 시 소유자(usersId) 고정
-    if (usersId == null) throw new IllegalArgumentException("usersId required");
-    if (req.title == null || req.title.isBlank())
-      throw new IllegalArgumentException("title required");
-    return repo.create(usersId, req);
-  }
+    /** JWT에서 구한 usersId를 인자로 받아 생성 */
+    @Transactional
+    public Long create(Long usersId, CreateRequest req) {
+        if (usersId == null) {
+            throw new IllegalArgumentException("usersId required");
+        }
+        if (req == null || req.title == null || req.title.isBlank()) {
+            throw new IllegalArgumentException("title required");
+        }
+        return repo.create(usersId, req);
+    }
 
-  // 단건 조회 시 404/403을 명확히 분리
-  @Transactional(readOnly = true)
-  public Optional<Response> get(Long id, Long usersId) {
-    if (usersId == null) throw new IllegalArgumentException("usersId required");
-    var ownerOpt = repo.findOwnerId(id);
-    if (ownerOpt.isEmpty()) return Optional.empty();
-    if (!ownerOpt.get().equals(usersId)) throw new OwnerMismatchException("resume owner != me");
-    return repo.findById(id);
-  }
+    // 단건 조회 (404 / 403 분리)
+    @Transactional(readOnly = true)
+    public Optional<Response> get(Long id, Long usersId) {
+        if (usersId == null) {
+            throw new IllegalArgumentException("usersId required");
+        }
+        var ownerOpt = repo.findOwnerId(id);
+        if (ownerOpt.isEmpty()) {
+            // 404: 이력서 없음
+            return Optional.empty();
+        }
+        if (!ownerOpt.get().equals(usersId)) {
+            // 403: 소유권 위반
+            throw new OwnerMismatchException("resume owner != me");
+        }
+        return repo.findById(id);
+    }
 
-  // 소유자만 업데이트(404/403 분기)
-  @Transactional
-  public boolean update(Long id, Long usersId, UpdateRequest req) {
-    if (usersId == null) throw new IllegalArgumentException("usersId required");
+    // 소유자만 업데이트
+    @Transactional
+    public boolean update(Long id, Long usersId, UpdateRequest req) {
+        verifyOwnerOrThrow(id, usersId);
+        return repo.updateByOwner(id, usersId, req) > 0;
+    }
 
-    // 1) 존재 확인 (404)
-    var ownerOpt = repo.findOwnerId(id);
-    if (ownerOpt.isEmpty()) throw new IllegalArgumentException("resume not found");
+    // 소유자만 삭제
+    @Transactional
+    public boolean delete(Long id, Long usersId) {
+        verifyOwnerOrThrow(id, usersId);
+        return repo.deleteByOwner(id, usersId) > 0;
+    }
 
-    // 2) 소유권 확인 (403)
-    if (!ownerOpt.get().equals(usersId)) throw new OwnerMismatchException();
+    // 목록 조회
+    @Transactional(readOnly = true)
+    public PageResponse<Response> list(PageRequest pr, Long usersId, String keyword) {
+        if (usersId == null) {
+            throw new IllegalArgumentException("usersId required");
+        }
+        var items = repo.search(pr, usersId, keyword);
+        var total = repo.count(usersId, keyword);
+        return new PageResponse<>(items, pr.getPage(), pr.getSize(), total);
+    }
 
-    // 3) 소유자 조건으로 업데이트
-    return repo.updateByOwner(id, usersId, req) > 0;
-  }
+    // 프로필 사진 URL 업데이트
+    @Transactional
+    public String updateProfileImage(Long id, Long usersId, String profileImageUrl) {
+        verifyOwnerOrThrow(id, usersId);
+        int updated = repo.updateProfileImageUrlByOwner(id, usersId, profileImageUrl);
+        if (updated <= 0) {
+            throw new IllegalArgumentException("resume not found");
+        }
+        return profileImageUrl;
+    }
 
-  // 소유자만 삭제(404/403 분기)
-  @Transactional
-  public boolean delete(Long id, Long usersId) {
-    if (usersId == null) throw new IllegalArgumentException("usersId required");
-
-    var ownerOpt = repo.findOwnerId(id);
-    if (ownerOpt.isEmpty()) throw new IllegalArgumentException("resume not found");
-    if (!ownerOpt.get().equals(usersId)) throw new OwnerMismatchException();
-
-    return repo.deleteByOwner(id, usersId) > 0;
-  }
-
-  @Transactional(readOnly = true)
-  public PageResponse<Response> list(PageRequest pr, Long usersId, String keyword) {
-    var items = repo.search(pr, usersId, keyword);
-    var total = repo.count(usersId, keyword);
-    return new PageResponse<>(items, pr.getPage(), pr.getSize(), total);
-  }
+    // 공통 소유권 검사
+    private void verifyOwnerOrThrow(Long resumeId, Long usersId) {
+        if (usersId == null) {
+            throw new IllegalArgumentException("usersId required");
+        }
+        var ownerOpt = repo.findOwnerId(resumeId);
+        if (ownerOpt.isEmpty()) {
+            throw new IllegalArgumentException("resume not found");
+        }
+        if (!ownerOpt.get().equals(usersId)) {
+            throw new OwnerMismatchException();
+        }
+    }
 }
