@@ -626,7 +626,7 @@ textarea { resize: vertical; min-height: 70px; }
 /* 2233076 12주차 추가: 토스트 메시지 스타일 */
 .toast-message {
     position: fixed;
-    bottom: 32px;
+    top: 32px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #111827;
