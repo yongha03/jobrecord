@@ -167,10 +167,15 @@ reqEmailInput &&
   });
 
 // 1단계: 인증번호 받기 (버튼 클릭)
+// 2233076 13주차 추가: DB에 없는 이메일 검증 기능
 requestCodeButton &&
   requestCodeButton.addEventListener("click", async () => {
     if (!reqEmailInput) return;
     const email = reqEmailInput.value.trim();
+
+    // 에러 메시지 초기화
+    if (resetEmailError) resetEmailError.textContent = "";
+    if (messageDiv) messageDiv.textContent = "";
 
     if (!email || !email.includes("@")) {
       if (resetEmailError) {
@@ -182,14 +187,48 @@ requestCodeButton &&
     // 버튼 비활성화 및 텍스트 변경 (피드백)
     const originalText = requestCodeButton.textContent;
     requestCodeButton.disabled = true;
-    requestCodeButton.textContent = "발송 중...";
+    requestCodeButton.textContent = "확인 중...";
 
     if (messageDiv) {
       messageDiv.style.color = "#4F46E5";
-      messageDiv.textContent = "인증번호를 발송하고 있습니다...";
+      messageDiv.textContent = "이메일을 확인하고 있습니다...";
     }
 
     try {
+      // 2233076 13주차 추가: 먼저 이메일이 DB에 존재하는지 확인
+      // 1. 먼저 이메일이 DB에 존재하는지 확인
+      const checkResponse = await fetch(`${API_BASE_URL}/auth/check-email?email=${encodeURIComponent(email)}`, {
+        method: "GET"
+      });
+
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json();
+        
+        // exists가 false면 등록되지 않은 이메일
+        if (!checkData.exists) {
+          if (resetEmailError) {
+            resetEmailError.textContent = "등록되지 않은 이메일입니다.";
+          }
+          
+          // 버튼 다시 활성화
+          requestCodeButton.disabled = false;
+          requestCodeButton.textContent = originalText;
+          
+          // messageDiv 초기화
+          if (messageDiv) messageDiv.textContent = "";
+          
+          return; // 여기서 중단 - 2단계로 넘어가지 않음
+        }
+      }
+
+      // 2. 이메일이 존재하면 인증번호 발송
+      requestCodeButton.textContent = "발송 중...";
+      
+      if (messageDiv) {
+        messageDiv.style.color = "#4F46E5";
+        messageDiv.textContent = "인증번호를 발송하고 있습니다...";
+      }
+
       const response = await fetch(`${API_BASE_URL}/auth/password-reset/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,16 +239,27 @@ requestCodeButton &&
 
       if (!response.ok) {
         const msg = data.message || "요청이 실패했습니다.";
-        throw new Error(msg);
+        if (resetEmailError) {
+          resetEmailError.textContent = msg;
+        }
+        
+        // 실패 시 버튼 다시 활성화
+        requestCodeButton.disabled = false;
+        requestCodeButton.textContent = originalText;
+        
+        // messageDiv 초기화
+        if (messageDiv) messageDiv.textContent = "";
+        
+        return; // 여기서 중단 - 2단계로 넘어가지 않음
       }
 
       // 2단계 표시
       if (formConfirm) formConfirm.style.display = "flex";
       if (formRequest) formRequest.style.display = "none";
-      if (resendCodeButton) resendCodeButton.disabled = false; // (추가)
+      if (resendCodeButton) resendCodeButton.disabled = false;
 
-      // 2단계 진입 시 재설정 버튼 클릭 가능하게 변경 (여기서만 enable) (추가)
-      if (confirmButton) confirmButton.disabled = false; // (추가)
+      // 2단계 진입 시 재설정 버튼 클릭 가능하게 변경
+      if (confirmButton) confirmButton.disabled = false;
 
       // 파란 문구 + 타이머 같이
       baseTimerMessage = "인증번호가 이메일로 발송되었습니다.";
@@ -219,10 +269,11 @@ requestCodeButton &&
       if (verifyCodeButton) verifyCodeButton.disabled = false;
     } catch (err) {
       baseTimerMessage = "";
+      if (resetEmailError) {
+        resetEmailError.textContent = "서버 오류가 발생했습니다.";
+      }
       if (messageDiv) {
-        messageDiv.style.color = "#d32f2f";
-        messageDiv.textContent =
-          "요청 실패: " + (err.message || "서버 응답 없음");
+        messageDiv.textContent = "";
       }
       
       // 실패 시 버튼 다시 활성화

@@ -1,6 +1,7 @@
 package com.jobproj.api.resume;
 
-import com.jobproj.api.resume.ResumeDto.Response;
+import com.jobproj.api.dto.ResumeDto;
+import com.jobproj.api.dto.ResumeDto.Response;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Locale;

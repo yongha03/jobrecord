@@ -1,18 +1,29 @@
 // password-reset.js에서 선언한 API_BASE_URL을 사용
 
+// 2233076 13주차 추가: JWT 토큰 만료 시 로그인 페이지 리다이렉트
+// 공통 fetch 헬퍼 (401/403 자동 처리)
+async function authFetch(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        credentials: 'include' // 쿠키 자동 전송
+    });
+
+    // 토큰 만료 또는 인증 실패 시
+    if (response.status === 401 || response.status === 403) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        window.location.href = '/auth/login';
+        throw new Error('unauthorized');
+    }
+
+    return response;
+}
+
 // 1. 페이지 로드 시 내 정보 조회
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-            method: 'GET',
-            credentials: 'include' // 쿠키 자동 전송
+        const response = await authFetch(`${API_BASE_URL}/api/users/me`, {
+            method: 'GET'
         });
-
-        if (response.status === 401 || response.status === 403) {
-            alert('로그인이 필요합니다.');
-            window.location.href = '/auth/login';
-            return;
-        }
 
         if (!response.ok) throw new Error('정보 조회 실패');
 
@@ -41,8 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error(error);
-        alert('사용자 정보를 불러올 수 없습니다.');
-        window.location.href = '/auth/login';
+        // authFetch에서 이미 처리됨
     }
 });
 
@@ -55,9 +65,8 @@ async function requestWithdraw() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+        const response = await authFetch(`${API_BASE_URL}/api/users/me`, {
             method: 'DELETE',
-            credentials: 'include', // 쿠키 자동 전송
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -79,7 +88,9 @@ async function requestWithdraw() {
         }
     } catch (error) {
         console.error(error);
-        alert('서버 오류가 발생했습니다.');
+        if (error.message !== 'unauthorized') {
+            alert('서버 오류가 발생했습니다.');
+        }
     }
 }
 
@@ -111,11 +122,13 @@ window.openPasswordModal = function openPasswordModal() {
     if (modal) {
         modal.style.display = 'flex';
         
-        // 현재 로그인한 사용자의 이메일을 미리 채우기 (수정 가능)
+        // 2233076 13주차 추가: 마이페이지에서 이메일을 자동으로 채우고 수정 불가능하게 설정
+        // 현재 로그인한 사용자의 이메일을 미리 채우고 수정 불가능하게 설정
         const userEmail = document.getElementById('user-email');
         const reqEmail = document.getElementById('req-email');
         if (userEmail && reqEmail) {
             reqEmail.value = userEmail.textContent;
+            reqEmail.readOnly = true; // 수정 불가능하게 설정
         }
         
         // 비밀번호 재설정 모달 상태 초기화

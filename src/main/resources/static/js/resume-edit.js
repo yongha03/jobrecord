@@ -8,6 +8,36 @@ document.addEventListener('DOMContentLoaded', () => {
     //  - 프로필 사진(증명사진) 업로드 + DB URL 저장 + 미리보기 표시
 
     // ------------------------------------------------------------
+    // 2233076 12주차 추가: 토스트 메시지 함수
+    // ------------------------------------------------------------
+    function showToast(message, type = 'info', duration = 2000) {
+        // 기존 토스트가 있으면 제거
+        const existing = document.querySelector('.toast-message');
+        if (existing) {
+            existing.remove();
+        }
+
+        // 새 토스트 생성
+        const toast = document.createElement('div');
+        toast.className = `toast-message ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // 표시
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        // 자동 제거
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, duration);
+    }
+
+    // ------------------------------------------------------------
     // 이력서 ID 파라미터 추출 + API 공통 유틸
     // ------------------------------------------------------------
     const hasAuth = (window.Auth && typeof window.Auth.apiFetch === 'function');
@@ -48,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // 제목(파일 이름) + 요약 + 공개 여부 + 기본 정보까지 한 번에 묶어 payload 생성
+    // 2233076 12주차 수정: 템플릿 ID 포함
+    // 제목(파일 이름) + 요약 + 공개 여부 + 기본 정보 + 템플릿ID까지 한 번에 묶어 payload 생성
     function buildResumePatchPayload(explicitTitle) {
         const nameSpan = document.getElementById('file-name-display');
         const summaryInput = document.getElementById('input-summary');
@@ -67,7 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
             title,
             isPublic: resumeMeta.isPublic ?? false,
             summary,
-            ...profile
+            ...profile,
+            // 2233076 12주차 추가: 현재 선택된 템플릿 ID 포함 (1-based)
+            templateId: currentTemplateIndex + 1
         };
     }
 
@@ -156,8 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------
-    // 이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보, 사진)를 조회해서
+    // 이력서 메타데이터(파일명, 공개 여부, 요약, 기본 정보, 사진, 템플릿ID)를 조회해서
     // 상단/요약 입력칸 + 기본 정보 입력칸 + 미리보기에 반영
+    // 2233076 12주차 추가: 템플릿 ID 로드
     // ------------------------------------------------------------
     async function loadResumeMeta(resumeId) {
         const nameSpan = document.getElementById('file-name-display');
@@ -218,6 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     photoBox.textContent = '사진 영역';
                 }
+            }
+
+            // 2233076 12주차 추가: 템플릿 ID 로드하여 템플릿 적용
+            if (typeof data.templateId === 'number' && data.templateId >= 1 && data.templateId <= 6) {
+                const templateIndex = data.templateId - 1; // 0-based index
+                applyTemplate(templateIndex);
             }
         } catch (err) {
             console.warn('이력서 메타정보 조회 실패(새 이력서일 수 있음):', err);
@@ -1152,16 +1192,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ------------------------------------------------------------
     // 상단 "저장하기" 버튼
+    // 2233076 12주차 수정: alert를 토스트 메시지로 변경
     // ------------------------------------------------------------
     const saveFileBtn = document.getElementById('save-file-btn');
     if (saveFileBtn) {
         saveFileBtn.addEventListener('click', async () => {
             if (!resumeId) {
-                alert('이력서 ID가 없습니다. /resume/edit?resumeId=... 형태로 접근해야 합니다.');
+                showToast('이력서 ID가 없습니다.', 'error', 3000);
                 return;
             }
             if (!hasAuth) {
-                alert('Auth 유틸을 찾을 수 없습니다.');
+                showToast('Auth 유틸을 찾을 수 없습니다.', 'error', 3000);
                 return;
             }
 
@@ -1182,10 +1223,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 await saveAllSections(resumeId);
-                alert('이력서 내용이 저장되었습니다.');
+                showToast('이력서 내용이 저장되었습니다.', 'success', 2000);
             } catch (err) {
                 console.error(err);
-                alert('저장 중 오류가 발생했습니다.\n' + err.message);
+                showToast('저장 중 오류가 발생했습니다.', 'error', 3000);
             } finally {
                 saveFileBtn.disabled = false;
                 saveFileBtn.textContent = originalText;

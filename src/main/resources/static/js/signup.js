@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const capsLockWarning = document.querySelector('.caps-lock-warning');
   const capsLockWarningConfirm = document.querySelector('.caps-lock-warning-confirm');
 
+  // 2233076 13주차 추가: 비밀번호 표시/숨김 토글 기능
   // 비밀번호 표시/숨김 토글
   if (passwordToggle && passwordInput) {
     passwordToggle.addEventListener('click', function() {
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 2233076 13주차 추가: Caps Lock 감지 기능
   // Caps Lock 감지 - 비밀번호 필드
   if (passwordInput && capsLockWarning) {
     passwordInput.addEventListener('keydown', function(e) {

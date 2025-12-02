@@ -622,3 +622,38 @@ textarea { resize: vertical; min-height: 70px; }
 .resume-wrapper.template-6 .resume-item-header {
     align-items: baseline;
 }
+
+/* 2233076 12주차 추가: 토스트 메시지 스타일 */
+.toast-message {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #111827;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: none;
+}
+
+.toast-message.show {
+    opacity: 1;
+}
+
+.toast-message.success {
+    background-color: #059669;
+}
+
+.toast-message.error {
+    background-color: #dc2626;
+}
+
+.toast-message.info {
+    background-color: #2563eb;
+}
