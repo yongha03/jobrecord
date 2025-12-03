@@ -13,6 +13,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     registry.addViewController("/auth/login").setViewName("auth/login");
     registry.addViewController("/auth/signup").setViewName("auth/signup");
     registry.addViewController("/mypage").setViewName("user_page/mypage");
+    registry.addViewController("/resume-job-recommendations").setViewName("job/resume-job-recommendations");
 
     // 옛 URL 대응용 (필요 없으면 지워도 됨)
     registry.addViewController("/Make").setViewName("resume/Make");
