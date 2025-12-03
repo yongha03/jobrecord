@@ -1,4 +1,4 @@
-// 2233076 12주차 추가: 이력서 기반 추천 공고 JavaScript
+// 2233076 13주차 추가: 이력서 기반 추천 공고 JavaScript
 
 // 샘플 데이터 (실제로는 API에서 가져와야 함)
 const sampleResumes = [
@@ -100,14 +100,14 @@ let filters = {
     onlyOpen: true
 };
 
-// 2233076 12주차 추가: 페이지 로드 시 초기화
+// 2233076 13주차 추가: 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', function() {
     loadResumes();
     loadJobs();
     attachEventListeners();
 });
 
-// 2233076 12주차 추가: 이력서 목록 로드
+// 2233076 13주차 추가: 이력서 목록 로드
 function loadResumes() {
     const resumeSelect = document.getElementById('resume-select');
     
@@ -125,7 +125,7 @@ function loadResumes() {
     }
 }
 
-// 2233076 12주차 추가: 이력서 변경 시 스킬 칩 업데이트
+// 2233076 13주차 추가: 이력서 변경 시 스킬 칩 업데이트
 function onResumeChange() {
     const resumeSelect = document.getElementById('resume-select');
     const resumeId = parseInt(resumeSelect.value);
@@ -138,7 +138,7 @@ function onResumeChange() {
     }
 }
 
-// 2233076 12주차 추가: 스킬 칩 업데이트
+// 2233076 13주차 추가: 스킬 칩 업데이트
 function updateSkillChips(skills) {
     const container = document.getElementById('resume-skill-chips');
     container.innerHTML = '';
@@ -154,7 +154,7 @@ function updateSkillChips(skills) {
     });
 }
 
-// 2233076 12주차 추가: 공고 목록 로드 및 필터링
+// 2233076 13주차 추가: 공고 목록 로드 및 필터링
 function loadJobs() {
     let filteredJobs = [...sampleJobs];
     
@@ -194,7 +194,7 @@ function loadJobs() {
     updateSummary(filteredJobs);
 }
 
-// 2233076 12주차 추가: 공고 카드 렌더링
+// 2233076 13주차 추가: 공고 카드 렌더링
 function renderJobs(jobs) {
     const container = document.getElementById('job-list');
     container.innerHTML = '';
@@ -210,7 +210,7 @@ function renderJobs(jobs) {
     });
 }
 
-// 2233076 12주차 추가: 공고 카드 생성
+// 2233076 13주차 추가: 공고 카드 생성
 function createJobCard(job) {
     const article = document.createElement('article');
     article.className = 'job-card';
@@ -253,7 +253,7 @@ function createJobCard(job) {
     return article;
 }
 
-// 2233076 12주차 추가: 요약 정보 업데이트
+// 2233076 13주차 추가: 요약 정보 업데이트
 function updateSummary(jobs) {
     const avgMatch = jobs.length > 0 ? 
         Math.round(jobs.reduce((sum, job) => sum + job.matchScore, 0) / jobs.length) : 0;
@@ -263,7 +263,7 @@ function updateSummary(jobs) {
     document.getElementById('total-count').textContent = `총 ${jobs.length}건`;
 }
 
-// 2233076 12주차 추가: 이벤트 리스너 연결
+// 2233076 13주차 추가: 이벤트 리스너 연결
 function attachEventListeners() {
     // 이력서 선택 변경
     document.getElementById('resume-select').addEventListener('change', onResumeChange);
@@ -303,12 +303,12 @@ function attachEventListeners() {
     document.getElementById('sort-select').addEventListener('change', loadJobs);
 }
 
-// 2233076 12주차 추가: 지원서 작성 (추후 구현)
+// 2233076 13주차 추가: 지원서 작성 (추후 구현)
 function applyJob(jobId) {
     alert(`공고 ID ${jobId}에 지원서를 작성합니다. (추후 구현)`);
 }
 
-// 2233076 12주차 추가: 공고 상세 보기 (추후 구현)
+// 2233076 13주차 추가: 공고 상세 보기 (추후 구현)
 function viewJobDetail(jobId) {
     alert(`공고 ID ${jobId}의 상세 정보를 표시합니다. (추후 구현)`);
 }
