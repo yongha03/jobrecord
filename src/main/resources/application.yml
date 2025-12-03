@@ -76,3 +76,14 @@ springdoc:
   swagger-ui:
     path: /docs
     use-root-path: false
+
+# 2233076 13주차 추가
+# 잡코리아 API 설정
+jobkorea:
+  api:
+    # API 키가 없으면 Mock 데이터 사용
+    # API 키를 받으면 여기에 입력
+    url: ""
+    key: ""
+    # 기본 검색 키워드 (개발자 전용)
+    default-keywords: "Java,Spring,백엔드,프론트엔드"
