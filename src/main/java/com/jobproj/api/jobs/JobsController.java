@@ -25,6 +25,7 @@ import java.util.List;
 public class JobsController {
 
     private final JobsService jobsService;
+    private final GeminiMatchingService geminiMatchingService;
 
     @GetMapping("/recommend")
     @Operation(
@@ -146,5 +147,61 @@ public class JobsController {
     ) {
         // 더미 구현: 필터는 보관만 하고, 검색은 핵심 파라미터(q, page, size)만 반영
         return ApiResponse.ok(jobsService.search(q, page, size));
+    }
+
+    @PostMapping("/match")
+    @Operation(
+        summary = "AI 기반 이력서-공고 매칭",
+        description = "Gemini API를 사용하여 이력서 전체 정보와 채용공고의 매칭도를 계산합니다."
+    )
+    public ApiResponse<GeminiMatchingService.MatchResult> matchWithAI(
+        @RequestBody MatchRequest request
+    ) {
+        var result = geminiMatchingService.calculateMatchScore(
+            request.getResumeInfo(),
+            request.getJob()
+        );
+        return ApiResponse.ok(result);
+    }
+
+    @PostMapping("/match/batch")
+    @Operation(
+        summary = "AI 기반 배치 매칭 (여러 공고)",
+        description = "Gemini API를 사용하여 여러 채용공고를 한 번에 매칭합니다. API 호출 최소화."
+    )
+    public ApiResponse<List<GeminiMatchingService.MatchResult>> matchBatchWithAI(
+        @RequestBody BatchMatchRequest request
+    ) {
+        var results = geminiMatchingService.calculateMatchScoreBatch(
+            request.getResumeInfo(),
+            request.getJobs()
+        );
+        return ApiResponse.ok(results);
+    }
+
+    /**
+     * 2233076 13주차 개선: AI 매칭 요청 DTO (종합 이력서 정보 포함)
+     */
+    public static class MatchRequest {
+        private GeminiMatchingService.ResumeInfo resumeInfo;
+        private JobDto job;
+
+        public GeminiMatchingService.ResumeInfo getResumeInfo() { return resumeInfo; }
+        public void setResumeInfo(GeminiMatchingService.ResumeInfo resumeInfo) { this.resumeInfo = resumeInfo; }
+        public JobDto getJob() { return job; }
+        public void setJob(JobDto job) { this.job = job; }
+    }
+
+    /**
+     * 2233076 13주차 개선: AI 배치 매칭 요청 DTO (종합 이력서 정보 포함)
+     */
+    public static class BatchMatchRequest {
+        private GeminiMatchingService.ResumeInfo resumeInfo;
+        private List<JobDto> jobs;
+
+        public GeminiMatchingService.ResumeInfo getResumeInfo() { return resumeInfo; }
+        public void setResumeInfo(GeminiMatchingService.ResumeInfo resumeInfo) { this.resumeInfo = resumeInfo; }
+        public List<JobDto> getJobs() { return jobs; }
+        public void setJobs(List<JobDto> jobs) { this.jobs = jobs; }
     }
 }

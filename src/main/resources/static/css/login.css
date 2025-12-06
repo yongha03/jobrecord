@@ -41,6 +41,17 @@ body {
     text-align: center;
     margin-bottom: 40px;
 }
+/* 2233076 13주차 추가: 로고 링크 및 이미지 스타일 */
+.header-section .logo-link {
+    display: inline-block;
+    text-decoration: none;
+}
+.header-section .logo-img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
 .header-section h1 {
     font-size: 60px;
     font-weight: 700;

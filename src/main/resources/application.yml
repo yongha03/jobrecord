@@ -87,3 +87,12 @@ jobkorea:
     key: ""
     # 기본 검색 키워드 (개발자 전용)
     default-keywords: "Java,Spring,백엔드,프론트엔드"
+
+# 2233076 13주차 추가
+# Gemini API 설정
+gemini:
+  api:
+    key: "AIzaSyDcfyDHC_hjS3bTRlKWFa-ppFWv-cI_7mQ"
+    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+    model: "gemini-1.5-flash"
