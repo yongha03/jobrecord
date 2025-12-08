@@ -15,7 +15,10 @@
             <img src="/img/logo.png" alt="JobRecord" class="logo-img">
         </a>
         <div class="top-user">
-            로그인 계정: <span id="user-name" th:text="${userName}">홍길동 (hong@example.com)</span>
+            로그인 계정:
+            <span id="user-name" th:text="${userName}">
+                홍길동 (hong@example.com)
+            </span>
         </div>
     </div>
 
@@ -107,8 +110,14 @@
             <!-- 요약 바 -->
             <div class="summary-bar">
                 <div class="summary-main">
-                    <span class="name" id="summary-user-name" th:text="${userName}">홍길동</span> 님의 이력서를 기준으로
-                    <span class="summary-count" id="summary-count">0개의 채용 공고</span>를 추천했어요.
+                    <span class="name" id="summary-user-name" th:text="${userName}">
+                        홍길동
+                    </span>
+                    님의 이력서를 기준으로
+                    <span class="summary-count" id="summary-count">
+                        0개의 채용 공고
+                    </span>
+                    를 추천했어요.
                 </div>
                 <div class="summary-pill" id="summary-match">
                     이력서와 평균 매칭도 약 0%
@@ -141,7 +150,9 @@
                     <div class="ai-loading-spinner"></div>
                     <div class="ai-loading-text">
                         <div class="ai-loading-title">AI가 매칭도를 분석하고 있습니다...</div>
-                        <div class="ai-loading-subtitle">이력서와 채용공고를 비교하여 최적의 추천을 준비 중입니다.</div>
+                        <div class="ai-loading-subtitle">
+                            이력서와 채용공고를 비교하여 최적의 추천을 준비 중입니다.
+                        </div>
                     </div>
                 </div>
             </div>
