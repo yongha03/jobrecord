@@ -72,10 +72,153 @@ public class JobsService {
         }
     }
 
+    /**
+     * 2233076 13주차 추가: 잡코리아 XML 응답 파싱
+     */
     private List<JobDto> parseJobkoreaXmlResponse(String xmlResponse) {
-        // ★★★ API 연결 시 수정 필요: XML 파싱 로직 구현 ★★★
-        log.warn("XML 파싱 미구현, Mock 데이터 반환");
-        return generateMockData(10);
+        List<JobDto> jobs = new ArrayList<>();
+        
+        try {
+            // 간단한 XML 파싱 (정규식 사용)
+            String[] items = xmlResponse.split("<Items>");
+            
+            for (int i = 1; i < items.length; i++) {
+                String item = items[i].split("</Items>")[0];
+                
+                try {
+                    JobDto job = JobDto.builder()
+                        .id(extractValue(item, "GI_No"))
+                        .title(extractValue(item, "GI_Subject"))
+                        .company(extractValue(item, "C_Name"))
+                        .location(parseLocation(extractValue(item, "AreaCode")))
+                        .experience(parseExperience(extractValue(item, "GI_Career")))
+                        .tags(parseKeywords(extractValue(item, "GI_Keyword")))
+                        .postedAt(parseDate(extractValue(item, "GI_W_Date")))
+                        .applyUrl(extractValue(item, "JK_URL"))
+                        .source("JOBKOREA")
+                        .sourceUrl(extractValue(item, "JK_URL"))
+                        .giNo(parseLong(extractValue(item, "GI_No")))
+                        .build();
+                    
+                    jobs.add(job);
+                } catch (Exception e) {
+                    log.warn("개별 공고 파싱 실패, 건너뜀: {}", e.getMessage());
+                }
+            }
+            
+            log.info("잡코리아 XML 파싱 완료: {}개 공고", jobs.size());
+            return jobs;
+            
+        } catch (Exception e) {
+            log.error("XML 파싱 실패, Mock 데이터로 대체", e);
+            // ★★★ API 연결 시 삭제: Mock 데이터로 폴백 ★★★
+            return generateMockData(10);
+        }
+    }
+    
+    /**
+     * 2233076 13주차 추가: XML에서 값 추출
+     */
+    private String extractValue(String xml, String tagName) {
+        try {
+            String openTag = "<" + tagName + ">";
+            String closeTag = "</" + tagName + ">";
+            int start = xml.indexOf(openTag);
+            int end = xml.indexOf(closeTag);
+            
+            if (start != -1 && end != -1 && start < end) {
+                return xml.substring(start + openTag.length(), end).trim();
+            }
+        } catch (Exception e) {
+            log.debug("태그 추출 실패: {}", tagName);
+        }
+        return "";
+    }
+    
+    /**
+     * 2233076 13주차 추가: 지역 코드 파싱
+     */
+    private String parseLocation(String areaCode) {
+        if (areaCode == null || areaCode.isEmpty()) {
+            return "전국";
+        }
+        
+        // 첫 번째 지역 코드만 사용 (B180 → 서울 등)
+        String firstCode = areaCode.split(",")[0].trim();
+        
+        // 간단한 매핑 (필요시 확장)
+        if (firstCode.startsWith("B")) {
+            return "서울";
+        } else if (firstCode.startsWith("I")) {
+            return "경기";
+        }
+        
+        return "전국";
+    }
+    
+    /**
+     * 2233076 13주차 추가: 경력 파싱
+     */
+    private ExperienceLevel parseExperience(String careerCode) {
+        if (careerCode == null || careerCode.isEmpty()) {
+            return ExperienceLevel.JUNIOR;
+        }
+        
+        try {
+            int code = Integer.parseInt(careerCode.trim());
+            // 3: 신입, 4: 경력, 5: 신입+경력
+            if (code == 3) return ExperienceLevel.JUNIOR;
+            if (code == 4) return ExperienceLevel.SENIOR;
+            return ExperienceLevel.MID;
+        } catch (Exception e) {
+            return ExperienceLevel.JUNIOR;
+        }
+    }
+    
+    /**
+     * 2233076 13주차 추가: 키워드 파싱 (태그로 변환)
+     */
+    private List<String> parseKeywords(String keywords) {
+        if (keywords == null || keywords.isEmpty()) {
+            return List.of();
+        }
+        
+        // 쉼표로 구분된 키워드를 리스트로 변환
+        return List.of(keywords.split(","))
+            .stream()
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .limit(10) // 최대 10개만
+            .toList();
+    }
+    
+    /**
+     * 2233076 13주차 추가: 날짜 파싱 (yyyyMMdd → LocalDateTime)
+     */
+    private LocalDateTime parseDate(String dateStr) {
+        if (dateStr == null || dateStr.length() != 8) {
+            return LocalDateTime.now();
+        }
+        
+        try {
+            int year = Integer.parseInt(dateStr.substring(0, 4));
+            int month = Integer.parseInt(dateStr.substring(4, 6));
+            int day = Integer.parseInt(dateStr.substring(6, 8));
+            return LocalDateTime.of(year, month, day, 0, 0);
+        } catch (Exception e) {
+            return LocalDateTime.now();
+        }
+    }
+    
+    /**
+     * 2233076 13주차 추가: Long 파싱
+     */
+    private Long parseLong(String value) {
+        try {
+            return Long.parseLong(value.trim());
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 
     public JobSearchResponse search(String q, int page, int size) {
