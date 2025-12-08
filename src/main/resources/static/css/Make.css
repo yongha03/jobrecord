@@ -40,13 +40,23 @@
     z-index: 200;
 }
 
+/* 2233076 13주차 추가: 로고를 링크로 변경하고 이미지 표시 */
 .logo-job-record {
     padding: 30px 20px; 
     font-size: 24px; 
     font-weight: 500;
     color: var(--logo-color);
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 30px; 
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.sidebar-logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
 }
 
 .menu-category {

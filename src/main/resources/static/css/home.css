@@ -48,6 +48,17 @@ body { font-family: 'Inter', sans-serif; background: #FFFFFF; }
   font-weight: 400;
   font-size: 58px;
   color: #FFFFFF;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 2233076 13주차 추가: 로고 이미지 */
+.logo-img-top {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* 흰색으로 변환 */
 }
 
 /* === 우측 상단 Login 버튼 === */
@@ -184,7 +195,24 @@ a.login-button-top:focus {
   padding-bottom: 40px; border-bottom: 1px solid #707070;
 }
 .footer-column { display: flex; flex-direction: column; gap: 10px; }
-.logo-bottom { font-family: 'Inter'; font-style: italic; font-weight: 400; font-size: 60px; color: #333; margin-bottom: 10px; }
+.logo-bottom { 
+  font-family: 'Inter'; 
+  font-style: italic; 
+  font-weight: 400; 
+  font-size: 60px; 
+  color: #333; 
+  margin-bottom: 10px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 2233076 13주차 추가: 푸터 로고 이미지 */
+.logo-img-bottom {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+}
 .footer-column h4 { font-size: 24px; font-weight: 400; color: #707070; border-bottom: 1px solid #707070; padding-bottom: 5px; }
 .footer-column p  { font-size: 16px; color: #707070; line-height: 1.6; }
 .footer-column a  { font-size: 16px; color: #707070; text-decoration: none; }

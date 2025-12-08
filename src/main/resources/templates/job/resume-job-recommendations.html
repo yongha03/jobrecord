@@ -11,9 +11,14 @@
 <div class="page">
     <!-- 상단 바 -->
     <div class="top-bar">
-        <div class="logo">JobRecord</div>
+        <a href="/user/home" class="logo">
+            <img src="/img/logo.png" alt="JobRecord" class="logo-img">
+        </a>
         <div class="top-user">
-            로그인 계정: <span id="user-name" th:text="${userName}">홍길동 (hong@example.com)</span>
+            로그인 계정:
+            <span id="user-name" th:text="${userName}">
+                홍길동 (hong@example.com)
+            </span>
         </div>
     </div>
 
@@ -92,6 +97,12 @@
                 <input id="only-open" type="checkbox" checked>
                 <label for="only-open">마감되지 않은 공고만 보기</label>
             </div>
+
+            <!-- 2233076 13주차 추가: 검색 버튼 -->
+            <button class="search-button" id="search-button" disabled>
+                <span class="search-icon"></span>
+                채용공고 검색
+            </button>
         </aside>
 
         <!-- 오른쪽: 추천 공고 리스트 -->
@@ -99,8 +110,14 @@
             <!-- 요약 바 -->
             <div class="summary-bar">
                 <div class="summary-main">
-                    <span class="name" id="summary-user-name" th:text="${userName}">홍길동</span> 님의 이력서를 기준으로
-                    <span class="summary-count" id="summary-count">0개의 채용 공고</span>를 추천했어요.
+                    <span class="name" id="summary-user-name" th:text="${userName}">
+                        홍길동
+                    </span>
+                    님의 이력서를 기준으로
+                    <span class="summary-count" id="summary-count">
+                        0개의 채용 공고
+                    </span>
+                    를 추천했어요.
                 </div>
                 <div class="summary-pill" id="summary-match">
                     이력서와 평균 매칭도 약 0%
@@ -126,10 +143,25 @@
             <div class="job-list" id="job-list">
                 <!-- JavaScript로 동적 생성 -->
             </div>
+
+            <!-- 2233076 13주차 추가: AI 로딩 표시 -->
+            <div class="ai-loading-overlay" id="ai-loading" style="display: none;">
+                <div class="ai-loading-content">
+                    <div class="ai-loading-spinner"></div>
+                    <div class="ai-loading-text">
+                        <div class="ai-loading-title">AI가 매칭도를 분석하고 있습니다...</div>
+                        <div class="ai-loading-subtitle">
+                            이력서와 채용공고를 비교하여 최적의 추천을 준비 중입니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 </div>
 
+<script th:src="@{/js/env.js}"></script>
+<script th:src="@{/js/auth.js}"></script>
 <script th:src="@{/js/resume-job-recommendations.js}"></script>
 </body>
 </html>

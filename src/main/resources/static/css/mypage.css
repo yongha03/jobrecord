@@ -44,6 +44,13 @@ body {
     gap: 0.5rem;
 }
 
+/* 2233076 13주차 추가: 로고 이미지 */
+.logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
 .logout-btn {
     font-size: 0.9rem;
     color: var(--sub-text-color);

@@ -23,6 +23,20 @@ header { margin-bottom: 24px; }
     margin-bottom: 12px;
 }
 
+/* 2233076 13주차 추가: 상단 로고 스타일 */
+.top-logo {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    margin-right: 8px;
+}
+
+.top-logo-img {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+}
+
 .back-button {
     border: none;
     background: transparent;
