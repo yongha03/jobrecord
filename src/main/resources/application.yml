@@ -83,16 +83,16 @@ jobkorea:
   api:
     # API 키가 없으면 Mock 데이터 사용
     # API 키를 받으면 여기에 입력
-    url: ""
-    key: ""
+    url: "http://www.jobkorea.co.kr/Service_JK/Data/JK_GI_XML_List.asp?api=1284"
+    key: "1284"
     # 기본 검색 키워드 (개발자 전용)
-    default-keywords: "Java,Spring,백엔드,프론트엔드"
+    default-keywords: Java|Spring|Python|JavaScript|React|Node|백엔드|프론트엔드|풀스택|개발자
 
 # 2233076 13주차 추가
 # Gemini API 설정
 gemini:
   api:
-    key: "AIzaSyDTEa20xhPxOigTcSA109t7kCeDRO9IUu4"
+    key: "AIzaSyBv4Zy9cDpRTTYiozMQ1T4CKmGnrKlKl0I"
     url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     model: "gemini-2.5-flash"
