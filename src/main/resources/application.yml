@@ -92,7 +92,7 @@ jobkorea:
 # Gemini API 설정
 gemini:
   api:
-    key: "AIzaSyBv4Zy9cDpRTTYiozMQ1T4CKmGnrKlKl0I"
+    key: "AIzaSyDTEa20xhPxOigTcSA109t7kCeDRO9IUu4"
     url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     model: "gemini-2.5-flash"

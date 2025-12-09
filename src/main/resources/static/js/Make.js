@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2233073 김용하 12주차 :
     //  - 템플릿 카드 클릭 시 선택 상태를 저장하고,
     //    PDF 내보내기 시 쿼리 파라미터로 템플릿 번호를 전달한다.
+    // 2233076 13주차 추가: 템플릿 이미지 클릭 시 모달 팝업
     let selectedTemplateIndex = 1;  // 기본 1번 템플릿
 
     const templateCards = document.querySelectorAll('.template-card');
@@ -203,7 +204,38 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             card.classList.add('selected');
         });
+
+        // 2233076 13주차 추가: 템플릿 이미지 클릭 시 모달 팝업
+        const img = card.querySelector('.template-image');
+        if (img) {
+            img.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const modal = document.getElementById('template-preview-modal');
+                const modalImg = document.getElementById('template-modal-image');
+                if (modal && modalImg) {
+                    modalImg.src = img.src;
+                    modal.classList.add('active');
+                }
+            });
+        }
     });
+
+    // 2233076 13주차 추가: 모달 닫기 이벤트
+    const modal = document.getElementById('template-preview-modal');
+    const modalClose = document.querySelector('.template-modal-close');
+    const modalOverlay = document.querySelector('.template-modal-overlay');
+
+    if (modalClose) {
+        modalClose.addEventListener('click', function() {
+            modal.classList.remove('active');
+        });
+    }
+
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', function() {
+            modal.classList.remove('active');
+        });
+    }
 
     // 융합프로젝트 김태형 12주차 :
     //  내 이력서 목록을 불러와 카드로 그리는 함수
