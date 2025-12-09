@@ -128,43 +128,53 @@
                 <!-- 템플릿 제목 아래 회색 구분선 -->
                 <div class="separator"></div>
                 
-                <!-- 템플릿 목록 (가로 스크롤 가능하도록 설정) -->
+                <!-- 템플릿 목록 (가로 스크롤) -->
                 <div class="template-grid">
                     
-                    <!-- 2233073 김용하 12주차 : 템플릿 1~6에 data-template-index 부여 + 기본 선택(1번) -->
+                    <!-- 2233076 13주차: 템플릿 이미지 사용 -->
                     <!-- 템플릿 카드 1 -->
                     <div class="template-card selected" data-template-index="1">
-                        <img src="pattern-2.png" alt="Template 1 Preview" class="template-image">
+                        <img src="/img/template-1.png" alt="Template 1 Preview" class="template-image">
                     </div>
                     
                     <!-- 템플릿 카드 2 -->
                     <div class="template-card" data-template-index="2">
-                        <img src="pattern-3.png" alt="Template 2 Preview" class="template-image">
+                        <img src="/img/template-2.png" alt="Template 2 Preview" class="template-image">
                     </div>
                     
                     <!-- 템플릿 카드 3 -->
                     <div class="template-card" data-template-index="3">
-                        <img src="pattern-4.png" alt="Template 3 Preview" class="template-image">
+                        <img src="/img/template-3.png" alt="Template 3 Preview" class="template-image">
                     </div>
                     
                     <!-- 템플릿 카드 4 -->
                     <div class="template-card" data-template-index="4">
-                        <img src="pattern-5.png" alt="Template 4 Preview" class="template-image">
+                        <img src="/img/template-4.png" alt="Template 4 Preview" class="template-image">
                     </div>
                     
                     <!-- 템플릿 카드 5 -->
                     <div class="template-card" data-template-index="5">
-                        <img src="pattern-6.png" alt="Template 5 Preview" class="template-image">
+                        <img src="/img/template-5.png" alt="Template 5 Preview" class="template-image">
                     </div>
 
                     <!-- 템플릿 카드 6 -->
                     <div class="template-card" data-template-index="6">
-                        <img src="pattern-7.png" alt="Template 6 Preview" class="template-image">
+                        <img src="/img/template-6.png" alt="Template 6 Preview" class="template-image">
                     </div>
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- 2233076 13주차 추가: 템플릿 이미지 확대 팝업 -->
+    <div id="template-preview-modal" class="template-modal">
+        <div class="template-modal-overlay"></div>
+        <div class="template-modal-content">
+            <button class="template-modal-close">&times;</button>
+            <img id="template-modal-image" src="" alt="Template Preview">
+        </div>
+    </div>
+
     <script src="/js/env.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/Make.js"></script>

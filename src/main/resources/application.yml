@@ -86,7 +86,7 @@ jobkorea:
     url: ""
     key: ""
     # 기본 검색 키워드 (개발자 전용)
-    default-keywords: "Java,Spring,백엔드,프론트엔드"
+    default-keywords: Java|Spring|Python|JavaScript|React|Node|백엔드|프론트엔드|풀스택|개발자
 
 # 2233076 13주차 추가
 # Gemini API 설정

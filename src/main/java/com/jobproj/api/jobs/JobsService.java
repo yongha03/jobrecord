@@ -13,16 +13,16 @@ import java.util.List;
  * 2233076 13주차 추가
  * JobsService - 잡코리아 API 연동
  * 
- * ★★★ 현재 상태: Mock 데이터 사용 중 ★★★
+ * 현재 상태: Mock 데이터 사용 중
  * - API 키가 있으면 실제 API 호출
  * - API 키가 없으면 Mock 데이터 반환 (테스트용)
  * 
- * ★★★ API 연결 시 작업 필요 ★★★
+ * API 연결 시 작업 필요
  * 1. application.yml에 실제 API URL과 키 설정
  * 2. parseJobkoreaXmlResponse() 메서드에 XML 파싱 로직 구현
  * 3. search() 메서드를 실제 검색 API로 교체
  * 4. generateMockData() 메서드 삭제
- * 5. 모든 "★★★ API 연결 시 삭제" 주석이 달린 코드 제거
+ * 5. 모든 "API 연결 시 삭제" 주석이 달린 코드 제거
  */
 @Slf4j
 @Service
@@ -50,7 +50,7 @@ public class JobsService {
             return callRealJobkoreaApi(defaultKeywords, safeLimit);
         } else {
             log.info("잡코리아 Mock 데이터 반환 - limit: {}", safeLimit);
-            // ★★★ API 연결 시 삭제: Mock 데이터 반환 로직 ★★★
+            // API 연결 시 삭제: Mock 데이터 반환 로직
             return generateMockData(safeLimit);
         }
     }
@@ -61,13 +61,22 @@ public class JobsService {
 
     private List<JobDto> callRealJobkoreaApi(String keywords, int limit) {
         try {
-            String requestUrl = String.format("%s?size=%d&keyword=%s&rbcd=10007&ob=2", apiUrl, limit, keywords);
+            // 2233076 13주차 추가: EUC-KR 인코딩 처리
+            String requestUrl = String.format("%s&keyword=%s&rbcd=10007&ob=2&size=%d", 
+                apiUrl, keywords, limit);
             log.info("잡코리아 API 요청: {}", requestUrl);
-            String response = restTemplate.getForObject(requestUrl, String.class);
+            
+            // EUC-KR 인코딩으로 응답 받기
+            byte[] responseBytes = restTemplate.getForObject(requestUrl, byte[].class);
+            String response = new String(responseBytes, "EUC-KR");
+            
+            log.info("===== 잡코리아 API 전체 응답 =====");
+            log.info(response);
+            log.info("===== 응답 종료 =====");
+            
             return parseJobkoreaXmlResponse(response);
         } catch (Exception e) {
             log.error("잡코리아 API 호출 실패, Mock 데이터로 대체", e);
-            // ★★★ API 연결 시 삭제: Mock 데이터로 폴백 ★★★
             return generateMockData(limit);
         }
     }
@@ -79,17 +88,26 @@ public class JobsService {
         List<JobDto> jobs = new ArrayList<>();
         
         try {
+            log.info("XML 파싱 시작, 응답 길이: {}", xmlResponse != null ? xmlResponse.length() : 0);
+            
             // 간단한 XML 파싱 (정규식 사용)
             String[] items = xmlResponse.split("<Items>");
+            log.info("분리된 Items 개수: {}", items.length - 1);
             
             for (int i = 1; i < items.length; i++) {
                 String item = items[i].split("</Items>")[0];
                 
                 try {
+                    String giNo = extractValue(item, "GI_No");
+                    String title = extractValue(item, "GI_Subject");
+                    String company = extractValue(item, "C_Name");
+                    
+                    log.debug("공고 #{}: GI_No={}, Title={}, Company={}", i, giNo, title, company);
+                    
                     JobDto job = JobDto.builder()
-                        .id(extractValue(item, "GI_No"))
-                        .title(extractValue(item, "GI_Subject"))
-                        .company(extractValue(item, "C_Name"))
+                        .id(giNo)
+                        .title(title)
+                        .company(company)
                         .location(parseLocation(extractValue(item, "AreaCode")))
                         .experience(parseExperience(extractValue(item, "GI_Career")))
                         .tags(parseKeywords(extractValue(item, "GI_Keyword")))
@@ -97,7 +115,7 @@ public class JobsService {
                         .applyUrl(extractValue(item, "JK_URL"))
                         .source("JOBKOREA")
                         .sourceUrl(extractValue(item, "JK_URL"))
-                        .giNo(parseLong(extractValue(item, "GI_No")))
+                        .giNo(parseLong(giNo))
                         .build();
                     
                     jobs.add(job);
@@ -111,7 +129,7 @@ public class JobsService {
             
         } catch (Exception e) {
             log.error("XML 파싱 실패, Mock 데이터로 대체", e);
-            // ★★★ API 연결 시 삭제: Mock 데이터로 폴백 ★★★
+            // API 연결 시 삭제: Mock 데이터로 폴백
             return generateMockData(10);
         }
     }
@@ -224,7 +242,7 @@ public class JobsService {
     public JobSearchResponse search(String q, int page, int size) {
         int safeSize = Math.max(1, Math.min(size, 50));
         int safePage = Math.max(0, page);
-        // ★★★ API 연결 시 수정 필요: 실제 검색 API 호출로 교체 ★★★
+        // API 연결 시 수정 필요: 실제 검색 API 호출로 교체
         var pool = recommend(50);
         List<JobDto> filtered;
         if (q == null || q.isBlank()) {
@@ -252,7 +270,7 @@ public class JobsService {
             .build();
     }
 
-    // ★★★ API 연결 시 삭제: Mock 데이터 생성 메서드 전체 ★★★
+    // API 연결 시 삭제: Mock 데이터 생성 메서드 전체
     private List<JobDto> generateMockData(int limit) {
         var now = LocalDateTime.now();
         var base = List.of(

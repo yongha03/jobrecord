@@ -3,6 +3,7 @@
 // 전역 상태
 let selectedResume = null;
 let currentJobs = [];
+let currentUserName = '';
 let filters = {
     region: "",
     jobType: "",
@@ -24,9 +25,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    loadUserInfo();
     loadResumes();
     attachEventListeners();
 });
+
+// 2233076 13주차 추가: 사용자 정보 로드
+async function loadUserInfo() {
+    try {
+        const response = await apiFetch('/api/users/me', { method: 'GET' });
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            currentUserName = result.data.name || '사용자';
+            
+            // 상단 사용자 이름 표시
+            document.getElementById('user-name').textContent = currentUserName;
+            
+            // 요약바 사용자 이름 표시
+            document.getElementById('summary-user-name').textContent = currentUserName;
+        }
+    } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+        currentUserName = '사용자';
+    }
+}
 
 // 2233076 13주차 추가: 이력서 목록 로드 (실제 API)
 async function loadResumes() {
@@ -79,7 +102,7 @@ async function loadResumes() {
     }
 }
 
-// 2233076 13주차 개선: 이력서 종합 정보 추출 (자동 검색 제거)
+// 2233076 13주차 추가: 이력서 종합 정보 추출
 async function onResumeChange() {
     const resumeSelect = document.getElementById('resume-select');
     const resumeId = resumeSelect.value;
@@ -87,9 +110,7 @@ async function onResumeChange() {
     if (!resumeId) {
         selectedResume = null;
         updateSkillChips([]);
-        // 검색 버튼 비활성화
         document.getElementById('search-button').disabled = true;
-        // 공고 초기화
         currentJobs = [];
         renderJobs([]);
         updateSummary([]);
@@ -97,12 +118,12 @@ async function onResumeChange() {
     }
     
     try {
-        // 1. 이력서 기본 정보 조회
+        // 이력서 기본 정보 조회
         const resumeResponse = await apiFetch(`/api/resumes/${resumeId}`, { method: 'GET' });
         const resumeResult = await resumeResponse.json();
         const resumeData = resumeResult.success ? resumeResult.data : resumeResult;
         
-        // 2. 이력서 스킬 조회
+        // 이력서 스킬 조회
         const skillsResponse = await apiFetch(`/api/resumes/${resumeId}/skills`, { method: 'GET' });
         const skillsResult = await skillsResponse.json();
         let skills = skillsResult.success ? skillsResult.data : skillsResult;
@@ -111,7 +132,7 @@ async function onResumeChange() {
         }
         const skillNames = skills.map(s => s.skillName || s.name || s).filter(Boolean);
         
-        // 3. 학력 정보 조회
+        // 학력 정보 조회
         const educationsResponse = await apiFetch(`/api/resumes/${resumeId}/educations`, { method: 'GET' });
         const educationsResult = await educationsResponse.json();
         let educations = educationsResult.success ? educationsResult.data : educationsResult;
@@ -119,7 +140,7 @@ async function onResumeChange() {
             educations = educations.content || educations.items || [];
         }
         
-        // 4. 경력 정보 조회
+        // 경력 정보 조회
         const experiencesResponse = await apiFetch(`/api/resumes/${resumeId}/experiences`, { method: 'GET' });
         const experiencesResult = await experiencesResponse.json();
         let experiences = experiencesResult.success ? experiencesResult.data : experiencesResult;
@@ -150,13 +171,10 @@ async function onResumeChange() {
         };
         
         updateSkillChips(selectedResume.skills);
-        
-        // 검색 버튼 활성화
         document.getElementById('search-button').disabled = false;
         
     } catch (error) {
         console.error('이력서 정보 로드 실패:', error);
-        // 최소 정보로 검색 가능
         selectedResume = { 
             id: resumeId, 
             name: '미입력',
@@ -190,23 +208,18 @@ function updateSkillChips(skills) {
     });
 }
 
-// 2233076 13주차 개선: 공고 목록 로드 (실제 API + 배치 Gemini, 종합 이력서 정보 전달)
+// 2233076 13주차 추가: 공고 목록 로드 (잡코리아 API + Gemini 배치 매칭)
 async function loadJobs() {
-    // 로딩 표시
     showLoading();
     
     try {
-        console.log('🔍 채용공고 조회 시작...');
-        
-        // 잡코리아 API 호출 (/jobs/recommend)
+        // 잡코리아 API 호출
         const response = await apiFetch('/jobs/recommend?limit=20', { method: 'GET' });
         const result = await response.json();
         
         if (!result.success) {
             throw new Error(result.message || '채용공고 조회 실패');
         }
-        
-        console.log('✅ 채용공고 조회 성공:', result.data.length + '개');
         
         // 종합 이력서 정보
         const resumeInfo = {
@@ -216,14 +229,10 @@ async function loadJobs() {
             experiences: selectedResume?.experiences || []
         };
         
-        console.log('📋 이력서 정보:', resumeInfo);
-        
-        // Gemini API 배치 매칭 (한 번에 20개, 종합 정보 포함)
+        // Gemini API 배치 매칭
         let jobs = [];
         if (resumeInfo.skills.length > 0 || resumeInfo.experiences.length > 0) {
             try {
-                console.log('🤖 Gemini AI 배치 매칭 시작...');
-                
                 const matchResponse = await apiFetch('/jobs/match/batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -236,8 +245,6 @@ async function loadJobs() {
                 const matchResult = await matchResponse.json();
                 
                 if (matchResult.success && matchResult.data) {
-                    console.log('✅ Gemini AI 배치 매칭 성공!');
-                    
                     // Gemini 결과와 공고 매핑
                     jobs = result.data.map((job, index) => {
                         const match = matchResult.data[index];
@@ -247,12 +254,10 @@ async function loadJobs() {
                     throw new Error('배치 매칭 실패');
                 }
             } catch (error) {
-                console.warn('⚠️ AI 배치 매칭 실패, 기본 매칭 사용:', error);
-                // 기본 매칭 사용
+                console.warn('AI 배치 매칭 실패, 기본 매칭 사용:', error);
                 jobs = result.data.map(job => convertJobDtoToCardSimple(job));
             }
         } else {
-            console.log('ℹ️ 이력서 정보 없음, 기본 매칭 사용');
             jobs = result.data.map(job => convertJobDtoToCardSimple(job));
         }
         
@@ -269,14 +274,11 @@ async function loadJobs() {
         renderJobs(filteredJobs);
         updateSummary(filteredJobs);
         
-        console.log('✅ 렌더링 완료:', filteredJobs.length + '개 공고');
-        
     } catch (error) {
-        console.error('❌ 채용공고 로드 실패:', error);
+        console.error('채용공고 로드 실패:', error);
         document.getElementById('job-list').innerHTML = 
             '<p style="text-align: center; color: #ef4444; padding: 40px;">채용공고를 불러오는데 실패했습니다.</p>';
     } finally {
-        // 로딩 숨김
         hideLoading();
     }
 }
