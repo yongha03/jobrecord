@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3307}/${DB_NAME:jobproj_db}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=utf8&allowPublicKeyRetrieval=true&allowMultiQueries=true
+    username: ${DB_USERNAME:db_user}
+    password: ${DB_PASSWORD:db_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connectionInitSql: "SET NAMES utf8mb4"
+
+  thymeleaf:
+    cache: false
