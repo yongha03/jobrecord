@@ -1,12 +1,27 @@
-/*2233076 12주차 추가*/
-/* --- 기본 스타일 --- */
+/* 2233076 13주차 수정: Make/채용공고 페이지 스타일로 통일 + 다크모드 */
+
+/* 라이트 모드 (기본) */
 :root {
-    --primary-color: #4F46E5;
-    --danger-color: #EF4444;
-    --text-color: #1F2937;
-    --sub-text-color: #6B7280;
-    --bg-color: #F3F4F6;
+    --primary-color: #f97316;
+    --primary-hover: #ea580c;
+    --danger-color: #dc2626;
+    --text-color: #1f2937;
+    --sub-text-color: #6b7280;
+    --bg-color: #f9fafb;
     --card-bg: #FFFFFF;
+    --border-color: #e5e7eb;
+}
+
+/* 다크 모드 */
+[data-theme="dark"] {
+    --primary-color: #fb923c;
+    --primary-hover: #f97316;
+    --danger-color: #f87171;
+    --text-color: #f9fafb;
+    --sub-text-color: #d1d5db;
+    --bg-color: #111827;
+    --card-bg: #1f2937;
+    --border-color: #374151;
 }
 
 * {
@@ -16,52 +31,108 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* --- 헤더 (로고) --- */
+/* 헤더 */
 .header {
     background-color: var(--card-bg);
     padding: 1rem 2rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-color);
-    text-decoration: none;
+/* 2233076 13주차 추가: 다크모드 토글 스위치 */
+.theme-toggle-wrapper {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
-/* 2233076 13주차 추가: 로고 이미지 */
+.theme-toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: var(--border-color);
+    border-radius: 14px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .theme-toggle-slider {
+    left: 26px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
 .logo-img {
-    height: 40px;
+    height: 60px;
     width: auto;
     object-fit: contain;
+    transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] .logo-img {
+    filter: brightness(0) invert(1);
 }
 
 .logout-btn {
-    font-size: 0.9rem;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--sub-text-color);
     text-decoration: none;
     cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.2s;
 }
+
 .logout-btn:hover {
+    background-color: #f3f4f6;
     color: var(--text-color);
 }
 
-/* --- 메인 컨테이너 --- */
+/* 메인 컨테이너 */
 .container {
     flex: 1;
     display: flex;
@@ -74,8 +145,8 @@ body {
     background-color: var(--card-bg);
     width: 100%;
     max-width: 500px;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     padding: 2.5rem;
     text-align: center;
 }
@@ -83,8 +154,8 @@ body {
 .profile-avatar {
     width: 80px;
     height: 80px;
-    background-color: #E0E7FF;
-    color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    color: #FFFFFF;
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -94,22 +165,22 @@ body {
 }
 
 .profile-name {
-    font-size: 1.5rem;
+    font-size: 24px;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
 
 .profile-email {
     color: var(--sub-text-color);
-    font-size: 0.95rem;
+    font-size: 14px;
     margin-bottom: 2rem;
 }
 
-/* --- 정보 리스트 --- */
+/* 정보 리스트 */
 .info-list {
     text-align: left;
     margin-bottom: 2rem;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid var(--border-color);
     padding-top: 1.5rem;
 }
 
@@ -117,7 +188,7 @@ body {
     display: flex;
     justify-content: space-between;
     margin-bottom: 1rem;
-    font-size: 0.95rem;
+    font-size: 14px;
 }
 
 .info-label {
@@ -129,7 +200,7 @@ body {
     font-weight: 500;
 }
 
-/* --- 버튼 그룹 --- */
+/* 버튼 */
 .btn-group {
     display: flex;
     flex-direction: column;
@@ -139,12 +210,11 @@ body {
 .btn {
     display: block;
     width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     text-align: center;
-    text-decoration: none;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
@@ -154,19 +224,23 @@ body {
     background-color: var(--primary-color);
     color: white;
 }
+
 .btn-primary:hover {
-    background-color: #4338CA;
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
 }
 
 .btn-danger-outline {
     background-color: transparent;
     color: var(--danger-color);
-    border: 1px solid var(--danger-color);
-}
-.btn-danger-outline:hover {
-    background-color: #FEF2F2;
+    border: 2px solid var(--danger-color);
 }
 
+.btn-danger-outline:hover {
+    background-color: #fee2e2;
+}
+
+/* 모달 */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -180,30 +254,45 @@ body {
     z-index: 1000;
 }
 
+.modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100%;
+    max-width: 450px;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 12px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 .modal-close-btn {
     position: absolute;
     top: 1rem;
     right: 1rem;
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 24px;
     color: var(--sub-text-color);
     cursor: pointer;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.25rem;
+    border-radius: 6px;
+    transition: all 0.2s;
 }
 
 .modal-close-btn:hover {
-    background-color: #F3F4F6;
+    background-color: #f3f4f6;
     color: var(--text-color);
 }
 
 .modal-title {
-    font-size: 1.15rem;
+    font-size: 20px;
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--danger-color);
@@ -212,168 +301,72 @@ body {
 
 .modal-desc {
     color: var(--sub-text-color);
-    font-size: 0.9rem;
+    font-size: 14px;
     margin-bottom: 1.5rem;
     line-height: 1.6;
     text-align: center;
 }
 
-.btn-primary.modal-button-full {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.btn-primary.modal-button-full:hover:not(:disabled) {
-    background-color: #4338CA;
-}
-
-.btn-secondary.modal-button-full {
-    background-color: #6B7280;
-    color: white;
-}
-
-.btn-secondary.modal-button-full:hover:not(:disabled) {
-    background-color: #4B5563;
-}
-
-.btn-secondary.modal-button-full {
-    background-color: #6B7280;
-    color: white;
-}
-
-.btn-secondary.modal-button-full:hover:not(:disabled) {
-    background-color: #4B5563;
-}
-
-.modal-btn-cancel {
-    background-color: #E5E7EB;
-    color: var(--text-color);
-}
-
-.modal-btn-confirm {
-    background-color: var(--danger-color);
-    color: white;
-}
-
-.modal-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.modal-vertical-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+.modal-content h2 {
+    font-size: 24px;
+    font-weight: 700;
     width: 100%;
+    text-align: left;
+    margin-bottom: 1.5rem;
 }
 
-.modal-btn-cancel {
-    background-color: #E5E7EB;
-    color: var(--text-color);
-}
-
-.modal-btn-confirm {
-    background-color: var(--danger-color);
-    color: white;
-}
-
-/* 에러/메시지 스타일 */
-#reset-email-error,
-#code-message,
-#conf-password-error {
-    color: #d32f2f;
-    font-size: 0.875rem;
-    min-height: 20px;
-    margin: 0.5rem 0;
-}
-
-#message {
-    text-align: center;
+.modal-content h3 {
+    font-size: 16px;
     font-weight: 600;
-    margin-top: 1.25rem;
-    min-height: 24px;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-/* 수직 버튼 컨테이너 */
-.modal-vertical-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
     width: 100%;
+    text-align: left;
+    margin: 1.5rem 0 0.75rem;
+    color: var(--text-color);
 }
 
-/* 폼 초기 숨김 */
-#password-reset-modal {
-    display: none;
-}
-
-#form-confirm {
-    display: none;
-}
-
-/* 모달 재정의 (사용자 커스텀) */
-.modal-content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 1rem !important;
+.modal-content label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
     width: 100%;
-    max-width: 430px;
-    margin: auto;
-    background: white;
-    padding: 2rem 2.5rem;
-    border-radius: 0.75rem;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* 모든 폼 내부 세로 정렬 */
-#form-request,
-#form-confirm {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100%;
-    gap: 0.75rem !important;
+    text-align: left;
 }
 
 .modal-input {
     width: 100%;
-    padding: 0.75rem;
+    padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #ddd;
-    font-size: 0.95rem;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
     font-family: 'Inter', sans-serif;
     background-color: white;
+    transition: all 0.2s;
 }
 
 .modal-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* 2233076 13주차 추가: readonly 입력 필드 스타일 */
-/* readonly 입력 필드 스타일 */
 .modal-input[readonly] {
-    background-color: #F3F4F6;
+    background-color: #f3f4f6;
     color: var(--sub-text-color);
     cursor: not-allowed;
 }
 
 .modal-input[readonly]:focus {
-    border-color: #ddd;
+    border-color: var(--border-color);
     box-shadow: none;
 }
 
 .modal-button-full {
     width: 100%;
-    padding: 0.75rem;
+    padding: 12px 16px;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     border: none;
@@ -386,28 +379,79 @@ body {
     cursor: not-allowed;
 }
 
-.modal-content h3,
-.modal-content h2 {
+.btn-primary.modal-button-full {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary.modal-button-full:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary.modal-button-full {
+    background-color: #6b7280;
+    color: white;
+}
+
+.btn-secondary.modal-button-full:hover:not(:disabled) {
+    background-color: #4b5563;
+}
+
+.modal-btn-confirm {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.modal-btn-confirm:hover {
+    background-color: #b91c1c;
+}
+
+.modal-btn-cancel {
+    background-color: #e5e7eb;
+    color: var(--text-color);
+}
+
+.modal-btn-cancel:hover {
+    background-color: #d1d5db;
+}
+
+.modal-vertical-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
     width: 100%;
-    text-align: left;
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
 }
 
-.modal-content h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
+#form-request,
+#form-confirm {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100%;
+    gap: 0.75rem !important;
 }
 
-.modal-content h3 {
-    font-size: 1.05rem;
+#form-confirm {
+    display: none;
+}
+
+#password-reset-modal {
+    display: none;
+}
+
+#reset-email-error,
+#code-message,
+#conf-password-error {
+    color: var(--danger-color);
+    font-size: 13px;
+    min-height: 20px;
+    margin: 0.5rem 0;
+}
+
+#message {
+    text-align: center;
     font-weight: 600;
-}
-
-.modal-content label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+    min-height: 24px;
+    font-size: 14px;
+    line-height: 1.5;
 }

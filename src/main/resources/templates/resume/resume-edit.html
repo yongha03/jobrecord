@@ -20,6 +20,13 @@
                 <img src="/img/logo.png" alt="Job Record" class="top-logo-img">
             </a>
 
+            <!-- 다크모드 토글 -->
+            <div class="theme-toggle-wrapper">
+                <button class="theme-toggle" id="theme-toggle" title="다크모드 전환">
+                    <div class="theme-toggle-slider">🌙</div>
+                </button>
+            </div>
+
             <!-- 내 초안(이력서 목록) 페이지로 이동 -->
             <button type="button" class="back-button" id="back-to-list-btn">
                 <span>&lt;</span>
@@ -340,6 +347,7 @@
 <!-- ✅ PDF 관련 로직은 전부 /js/resume-edit.js 안에 있음 -->
 <script src="/js/env.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/theme-toggle.js"></script>
 <script src="/js/resume-edit.js"></script>
 </body>
 </html>

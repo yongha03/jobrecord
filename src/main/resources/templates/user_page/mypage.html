@@ -20,7 +20,15 @@
     <a href="/user/home" class="logo">
         <img src="/img/logo.png" alt="Job Record" class="logo-img">
     </a>
-    <a onclick="logout()" class="logout-btn">로그아웃</a>
+    
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="theme-toggle-wrapper">
+            <button class="theme-toggle" id="theme-toggle" title="다크모드 전환">
+                <div class="theme-toggle-slider">🌙</div>
+            </button>
+        </div>
+        <a onclick="logout()" class="logout-btn">로그아웃</a>
+    </div>
 </header>
 
 <div class="container">
@@ -131,6 +139,7 @@
 </div>
 
 <script src="/js/env.js"></script>
+<script src="/js/theme-toggle.js"></script>
 <script src="/js/password-reset.js"></script>
 <script src="/js/mypage.js"></script>
 </body>

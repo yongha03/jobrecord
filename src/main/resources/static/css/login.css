@@ -5,6 +5,34 @@
     box-sizing: border-box; 
 }
 
+/* 라이트 모드 (기본) */
+:root {
+    --bg-color: #FFFFFF;
+    --text-primary: #000000;
+    --text-secondary: #8A8A8A;
+    --text-placeholder: #B9B9B9;
+    --border-color: #707070;
+    --input-bg: #FFFFFF;
+    --button-disabled-bg: #E1E1E1;
+    --button-disabled-text: #5A5A5A;
+    --accent-color: #0055FF;
+    --modal-bg: #FFFFFF;
+}
+
+/* 다크 모드 */
+[data-theme="dark"] {
+    --bg-color: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-placeholder: #9ca3af;
+    --border-color: #374151;
+    --input-bg: #111827;
+    --button-disabled-bg: #374151;
+    --button-disabled-text: #9ca3af;
+    --accent-color: #fb923c;
+    --modal-bg: #1f2937;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     /* 'pattern.jpg' 파일이 이 css 파일과 같은 폴더에 있어야 합니다 */
@@ -20,6 +48,11 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] body {
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 /* --- 흰색 박스 (login-container) --- */
@@ -27,13 +60,58 @@ body {
     width: 100%;
     max-width: 650px; /* XD 코드 기준 (35% ~ 34%) */
     padding: 60px 80px;
-    background: #FFFFFF;
-    border: 1px solid #707070;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+/* 다크모드 토글 스위치 */
+.theme-toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: var(--border-color);
+    border-radius: 14px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+[data-theme="dark"] .theme-toggle-slider {
+    left: 26px;
 }
 
 /* 1. 제목/부제목 영역 */
@@ -51,21 +129,25 @@ body {
     width: auto;
     object-fit: contain;
     margin-bottom: 10px;
+    transition: filter 0.3s ease;
+}
+[data-theme="dark"] .header-section .logo-img {
+    filter: brightness(0) invert(1);
 }
 .header-section h1 {
     font-size: 60px;
     font-weight: 700;
-    color: #000000;
+    color: var(--text-primary);
 }
 .header-section h2 {
     font-size: 40px;
     font-weight: 400;
-    color: #000000;
+    color: var(--text-primary);
     margin-top: 10px;
 }
 .header-section p {
     font-size: 30px;
-    color: #B9B9B9;
+    color: var(--text-placeholder);
     margin-top: 20px;
 }
 
@@ -80,7 +162,7 @@ body {
 }
 .input-group label {
     font-size: 15px;
-    color: #B9B9B9;
+    color: var(--text-placeholder);
     display: block;
     margin-bottom: 10px;
 }
@@ -92,21 +174,22 @@ body {
     left: 15px;
     top: 50%;
     transform: translateY(-50%);
-    color: #B9B9B9;
+    color: var(--text-placeholder);
     font-size: 18px;
     z-index: 1;
 }
 .input-wrapper input {
     width: 100%;
-    background: #FFFFFF;
-    border: 1px solid #707070;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 16px 16px 16px 45px;
     font-size: 16px;
+    color: var(--text-primary);
 }
 .input-wrapper input:focus {
     outline: none;
-    border-color: #0055FF;
+    border-color: var(--accent-color);
 }
 
 /* 2233076 13주차 추가: 비밀번호 표시/숨김 토글 버튼 스타일 */
@@ -155,16 +238,16 @@ body {
     padding: 15px 0;
     font-size: 30px;
     font-weight: 400;
-    background: #E1E1E1;
-    border: 1px solid #707070;
-    color: #5A5A5A;
+    background: var(--button-disabled-bg);
+    border: 1px solid var(--border-color);
+    color: var(--button-disabled-text);
     border-radius: 4px;
     cursor: not-allowed; 
 }
 .login-button.active {
-    background: #0055FF;
+    background: var(--accent-color);
     color: #FFFFFF;
-    border-color: #0055FF;
+    border-color: var(--accent-color);
     cursor: pointer;
 }
 
@@ -178,10 +261,10 @@ body {
     margin-bottom: 20px;
 }
 .links-section p {
-    color: #8A8A8A;
+    color: var(--text-secondary);
 }
 .links-section a {
-    color: #0055FF;
+    color: var(--accent-color);
     text-decoration: underline;
     font-weight: 600;
 }
@@ -192,7 +275,7 @@ body {
 /* 6. 약관 */
 .terms-section {
     font-size: 12px;
-    color: #8A8A8A;
+    color: var(--text-secondary);
     text-align: center;
     line-height: 1.5;
 }
@@ -222,7 +305,7 @@ body {
 .reset-modal {
     width: 100%;
     max-width: 420px;
-    background: #FFFFFF;
+    background: var(--modal-bg);
     border-radius: 8px;
     padding: 24px 28px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -237,7 +320,7 @@ body {
 .reset-modal-header h3 {
     font-size: 20px;
     font-weight: 600;
-    color: #000000;
+    color: var(--text-primary);
 }
 .reset-modal-close {
     border: none;
@@ -260,16 +343,18 @@ body {
 }
 .reset-section label {
     font-size: 14px;
-    color: #555555;
+    color: var(--text-secondary);
 }
 
 /* 입력 공통 */
 .reset-input {
-    border: 1px solid #707070;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 10px 12px;
     font-size: 14px;
     width: 100%;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 /* 버튼 공통 */
@@ -278,7 +363,7 @@ body {
     padding: 10px 0;
     border-radius: 4px;
     border: none;
-    background: #0055FF;
+    background: var(--accent-color);
     color: #FFFFFF;
     font-size: 14px;
     cursor: pointer;

@@ -1,10 +1,43 @@
 * { box-sizing: border-box; }
 
+/* 라이트 모드 (기본) */
+:root {
+    --bg-page: #f5f5f7;
+    --bg-card: #ffffff;
+    --text-primary: #222;
+    --text-secondary: #555;
+    --text-tertiary: #666;
+    --text-muted: #999;
+    --border-color: #d4d4d8;
+    --border-divider: #e5e7eb;
+    --accent-primary: #2563eb;
+    --accent-hover: #1d4ed8;
+    --button-secondary-bg: #f9fafb;
+    --input-focus-shadow: rgba(37, 99, 235, 0.1);
+}
+
+/* 다크 모드 */
+[data-theme="dark"] {
+    --bg-page: #111827;
+    --bg-card: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #9ca3af;
+    --text-muted: #6b7280;
+    --border-color: #374151;
+    --border-divider: #4b5563;
+    --accent-primary: #3b82f6;
+    --accent-hover: #2563eb;
+    --button-secondary-bg: #374151;
+    --input-focus-shadow: rgba(59, 130, 246, 0.2);
+}
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background-color: #f5f5f7;
-    color: #222;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .page {
@@ -35,6 +68,11 @@ header { margin-bottom: 24px; }
     height: 32px;
     width: auto;
     object-fit: contain;
+    transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] .top-logo-img {
+    filter: brightness(0) invert(1);
 }
 
 .back-button {
@@ -45,16 +83,16 @@ header { margin-bottom: 24px; }
     gap: 4px;
     font-size: 13px;
     cursor: pointer;
-    color: #111827;
+    color: var(--text-primary);
     padding: 6px 10px;
     border-radius: 999px;
 }
-.back-button:hover { background-color: #e5e7eb; }
+.back-button:hover { background-color: var(--border-divider); }
 
 .top-divider {
     width: 1px;
     height: 20px;
-    background-color: #e5e7eb;
+    background-color: var(--border-divider);
 }
 
 .file-actions {
@@ -66,27 +104,28 @@ header { margin-bottom: 24px; }
 
 .file-name-label {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-right: 2px;
 }
 
 .file-name-value {
     font-size: 13px;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
 }
 
 .top-btn {
     border-radius: 999px;
-    border: 1px solid #d4d4d8;
+    border: 1px solid var(--border-color);
     padding: 6px 10px;
     font-size: 12px;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
     cursor: pointer;
 }
 .top-btn.primary {
-    border-color: #2563eb;
-    background-color: #2563eb;
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary);
     color: #ffffff;
 }
 .top-btn:hover { opacity: 0.92; }
@@ -95,12 +134,12 @@ header { margin-bottom: 24px; }
     margin-left: auto;
     text-align: right;
     font-size: 12px;
-    color: #4b5563;
+    color: var(--text-tertiary);
 }
 .user-info-name {
     display: block;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
 }
 .user-info-email { display: block; }
 
@@ -108,11 +147,12 @@ header h1 {
     margin: 0 0 4px;
     font-size: 24px;
     font-weight: 700;
+    color: var(--text-primary);
 }
 header p {
     margin: 0;
     font-size: 14px;
-    color: #666;
+    color: var(--text-tertiary);
 }
 
 .layout {
@@ -122,10 +162,11 @@ header p {
 }
 
 .editor, .preview {
-    background-color: #fff;
+    background-color: var(--bg-card);
     border-radius: 10px;
     padding: 20px;
     box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border-color);
 }
 
 .editor { flex: 1 1 45%; }
@@ -142,14 +183,15 @@ header p {
 .editor h2, .preview h2 {
     margin: 0 0 16px;
     font-size: 18px;
+    color: var(--text-primary);
 }
 
 .section-title {
     margin: 20px 0 8px;
     font-size: 15px;
     font-weight: 600;
-    color: #333;
-    border-left: 3px solid #2563eb;
+    color: var(--text-primary);
+    border-left: 3px solid var(--accent-primary);
     padding-left: 8px;
 }
 
@@ -165,42 +207,46 @@ header p {
     gap: 4px;
 }
 
-label { font-size: 12px; color: #555; }
+label { font-size: 12px; color: var(--text-secondary); }
 
 input, textarea, select {
     border-radius: 6px;
-    border: 1px solid #d4d4d8;
+    border: 1px solid var(--border-color);
     padding: 8px 10px;
     font-size: 13px;
     outline: none;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
 }
 input:focus, textarea:focus, select:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--input-focus-shadow);
 }
 textarea { resize: vertical; min-height: 70px; }
 
-.hint { font-size: 11px; color: #999; margin-top: 2px; }
+.hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 .add-button {
     margin-top: 8px;
     font-size: 12px;
     padding: 6px 10px;
     border-radius: 999px;
-    border: 1px solid #d4d4d8;
-    background-color: #f9fafb;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-secondary-bg);
+    color: var(--text-primary);
     cursor: pointer;
 }
 .add-button:hover {
-    background-color: #eef2ff;
-    border-color: #a5b4fc;
+    background-color: var(--accent-primary);
+    color: #ffffff;
+    border-color: var(--accent-primary);
 }
 
 .sub-section-label {
     font-size: 13px;
     font-weight: 600;
     margin: 12px 0 6px;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .basic-actions {
@@ -225,11 +271,13 @@ textarea { resize: vertical; min-height: 70px; }
 .hint-inline { font-size: 11px; color: #6b7280; }
 
 /* 이력서 템플릿 스타일 */
+/* 2233076 13주차 추가: 템플릿 미리보기는 다크모드 영향 받지 않도록 강제 고정 */
 .resume-wrapper {
     border: 1px solid #e4e4e7;
     border-radius: 8px;
     padding: 24px 20px;
-    background-color: #fafafa;
+    background-color: #fafafa !important;
+    color: #222 !important;
 }
 
 .resume-header {
@@ -250,7 +298,7 @@ textarea { resize: vertical; min-height: 70px; }
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    color: #6b7280;
+    color: #6b7280 !important;
     overflow: hidden; /* 이미지가 튀어나가지 않게 */
 }
 .resume-photo-box img {
@@ -265,17 +313,17 @@ textarea { resize: vertical; min-height: 70px; }
     justify-content: space-between;
     gap: 16px;
 }
-.resume-name-block h1 { margin: 0 0 4px; font-size: 24px; }
-.resume-name-block p { margin: 0; font-size: 13px; color: #555; }
-.resume-birth { margin-top: 2px; font-size: 12px; color: #4b5563; }
-.resume-contact { text-align: right; font-size: 12px; color: #444; white-space: nowrap; }
-.resume-contact div { line-height: 1.5; }
+.resume-name-block h1 { margin: 0 0 4px; font-size: 24px; color: #000 !important; }
+.resume-name-block p { margin: 0; font-size: 13px; color: #555 !important; }
+.resume-birth { margin-top: 2px; font-size: 12px; color: #4b5563 !important; }
+.resume-contact { text-align: right; font-size: 12px; color: #444 !important; white-space: nowrap; }
+.resume-contact div { line-height: 1.5; color: #444 !important; }
 
 .resume-section { margin-bottom: 16px; }
 .resume-section-title {
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: #111827 !important;
     margin: 0 0 8px;
     border-bottom: 1px solid #e4e4e7;
     padding-bottom: 4px;
@@ -287,9 +335,13 @@ textarea { resize: vertical; min-height: 70px; }
     gap: 8px;
     font-size: 13px;
     font-weight: 600;
+    color: #000 !important;
 }
-.resume-item-sub { font-size: 12px; color: #555; margin-top: 2px; }
-.resume-item-desc { font-size: 12px; color: #444; margin-top: 4px; }
+.resume-item-header span {
+    color: #000 !important;
+}
+.resume-item-sub { font-size: 12px; color: #555 !important; margin-top: 2px; }
+.resume-item-desc { font-size: 12px; color: #444 !important; margin-top: 4px; }
 
 .resume-skill-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .resume-tag {
@@ -298,6 +350,7 @@ textarea { resize: vertical; min-height: 70px; }
     padding: 3px 10px;
     font-size: 11px;
     background-color: #f9fafb;
+    color: #333 !important;
 }
 
 .experience-group, .project-group {
@@ -425,7 +478,7 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ===================== 템플릿 2 : 심플 카드형 ===================== */
 .resume-wrapper.template-2 {
-    background-color: #ffffff;
+    background-color: #ffffff !important;
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
@@ -464,7 +517,7 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ===================== 템플릿 3 : 다크 헤더형 ===================== */
 .resume-wrapper.template-3 {
-    background-color: #ffffff;
+    background-color: #ffffff !important;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
     overflow: hidden;
@@ -472,8 +525,8 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* 상단 헤더를 어두운 배경 박스로 */
 .resume-wrapper.template-3 .resume-header {
-    background: linear-gradient(135deg, #1f2937, #020617);
-    color: #f9fafb;
+    background: linear-gradient(135deg, #1f2937, #020617) !important;
+    color: #f9fafb !important;
     padding: 18px 18px 16px;
     margin: -24px -20px 16px;
     border-bottom: none;
@@ -481,31 +534,31 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* 헤더 안 텍스트 색상 조정 */
 .resume-wrapper.template-3 .resume-name-block h1 {
-    color: #f9fafb;
+    color: #f9fafb !important;
 }
 .resume-wrapper.template-3 .resume-name-block p {
-    color: #e5e7eb;
+    color: #e5e7eb !important;
 }
 .resume-wrapper.template-3 .resume-birth,
 .resume-wrapper.template-3 .resume-contact div {
-    color: #e5e7eb;
+    color: #e5e7eb !important;
 }
 
 /* 프로필 사진 테두리 밝게 */
 .resume-wrapper.template-3 .resume-photo-box {
     border-color: rgba(249, 250, 251, 0.5);
     background-color: rgba(15, 23, 42, 0.5);
-    color: #e5e7eb;
+    color: #e5e7eb !important;
 }
 
 /* 섹션 제목은 진한 회색 */
 .resume-wrapper.template-3 .resume-section-title {
-    color: #111827;
+    color: #111827 !important;
 }
 
 /* ===================== 템플릿 4 : 왼쪽 라인 강조형 ===================== */
 .resume-wrapper.template-4 {
-    background-color: #fafafa;
+    background-color: #fafafa !important;
     border-radius: 10px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
@@ -544,7 +597,46 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ===================== 템플릿 5 : 타임라인 느낌 ===================== */
 .resume-wrapper.template-5 {
-    background-color: #ffffff;
+    background-color: #ffffff !important;
+    border-radius: 10px;
+    border: 1px solid #e4e4e7;
+}
+
+/* 경력, 프로젝트를 타임라인처럼 보이게 */
+.resume-wrapper.template-5 #preview-experience-section .resume-item,
+.resume-wrapper.template-5 #preview-project-section .resume-item {
+    position: relative;
+    padding-left: 18px;
+}
+
+/* 동그라미 포인트 */
+.resume-wrapper.template-5 #preview-experience-section .resume-item::before,
+.resume-wrapper.template-5 #preview-project-section .resume-item::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background-color: #2563eb;
+}
+
+/* 세로 라인 */
+.resume-wrapper.template-5 #preview-experience-section .resume-item:not(:last-child)::after,
+.resume-wrapper.template-5 #preview-project-section .resume-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 5.5px;
+    top: 18px;
+    bottom: -4px;
+    width: 1.5px;
+    background-color: #e5e7eb;
+}
+
+/* ===================== 템플릿 5 : 타임라인 느낌 ===================== */
+.resume-wrapper.template-5 {
+    background-color: #ffffff !important;
     border-radius: 10px;
     border: 1px solid #e4e4e7;
 }
@@ -584,13 +676,13 @@ textarea { resize: vertical; min-height: 70px; }
 /* 날짜(오른쪽 값)를 조금 더 강조 */
 .resume-wrapper.template-5 .resume-item-header span:last-child {
     font-size: 12px;
-    color: #374151;
+    color: #374151 !important;
 }
 
 /* 박주승 12주차 템플릿 6종 */
 /* ===================== 템플릿 6 : 중앙 정렬 이력서 ===================== */
 .resume-wrapper.template-6 {
-    background-color: #ffffff;
+    background-color: #ffffff !important;
     border-radius: 16px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
@@ -670,4 +762,53 @@ textarea { resize: vertical; min-height: 70px; }
 
 .toast-message.info {
     background-color: #2563eb;
+}
+
+/* 2233076 13주차 추가: 다크모드 토글 스위치 */
+.theme-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+}
+
+.theme-toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: var(--border-color);
+    border-radius: 14px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+[data-theme="dark"] .theme-toggle-slider {
+    left: 26px;
 }
