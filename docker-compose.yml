@@ -1,29 +1,29 @@
 ﻿version: "3.8"
+
 services:
   mysql8:
     image: mysql:8.4
-    container_name: mysql8
+    container_name: ${DB_CONTAINER_NAME:-mysql8}
     ports:
-      - "3307:3306"
+      - "${DB_PORT_MAPPING:-3306}:3306"  # 필요 없으면 이 줄 삭제
     environment:
-      MYSQL_DATABASE: jobproj_db
-      MYSQL_USER: db_user
-      MYSQL_PASSWORD: db_password
-      MYSQL_ROOT_PASSWORD: root_password
-      TZ: Asia/Seoul
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: ${TZ:-Asia/Seoul}
     volumes:
       - ./db/init:/docker-entrypoint-initdb.d
       - mysql-data:/var/lib/mysql
 
-  # 2233076 10주차 추가 (Redis 서비스)
   redis:
     image: redis:latest
-    container_name: jobrecord-redis # (수정) 컨테이너 이름
+    container_name: ${REDIS_CONTAINER_NAME:-jobrecord-redis}
     ports:
-      - "6379:6379" # application.yml의 6379 포트와 일치
+      - "${REDIS_PORT:-6379}:6379"  # 내부에서만 쓸 거면 이 줄 삭제
     volumes:
       - redis-data:/data
 
 volumes:
   mysql-data:
-  redis-data: # 2233076 10주차 추가 (Redis 볼륨)
+  redis-data:
