@@ -3,27 +3,87 @@
 services:
   mysql8:
     image: mysql:8.4
-    container_name: ${DB_CONTAINER_NAME:-mysql8}
-    ports:
-      - "${DB_PORT_MAPPING:-3306}:3306"  # 필요 없으면 이 줄 삭제
+    container_name: mysql8
+    restart: always
     environment:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      TZ: ${TZ:-Asia/Seoul}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - ./db/init:/docker-entrypoint-initdb.d
       - mysql-data:/var/lib/mysql
+    networks:
+      - jobrecord-net
+    # 로컬 개발에서는 3307로 expose, 서버에서는 값만 바꾸거나 주석 처리
+    ports:
+      - "${DB_PORT_MAPPING}:3306"
 
   redis:
     image: redis:latest
-    container_name: ${REDIS_CONTAINER_NAME:-jobrecord-redis}
-    ports:
-      - "${REDIS_PORT:-6379}:6379"  # 내부에서만 쓸 거면 이 줄 삭제
+    container_name: jobrecord-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
+    networks:
+      - jobrecord-net
+    ports:
+      - "${REDIS_PORT_MAPPING}:6379"
+
+  backend:
+    image: ${BACKEND_IMAGE_NAME}
+    # 또는 서버에서 직접 빌드할 거면 아래 주석 풀고 image 끄고:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: jobrecord-backend
+    restart: always
+    depends_on:
+      - mysql8
+      - redis
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SERVER_PORT: ${SERVER_PORT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS}
+
+      JOBKOREA_API_URL: ${JOBKOREA_API_URL}
+      JOBKOREA_API_KEY: ${JOBKOREA_API_KEY}
+      JOBKOREA_DEFAULT_KEYWORDS: ${JOBKOREA_DEFAULT_KEYWORDS}
+
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_URL: ${GEMINI_API_URL}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+    ports:
+      - "${SERVER_PORT}:8080"
+    networks:
+      - jobrecord-net
 
 volumes:
   mysql-data:
   redis-data:
+
+networks:
+  jobrecord-net:
+    driver: bridge

@@ -4,13 +4,9 @@ server:
     max-swallow-size: -1
 
 spring:
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
-
-  # 이메일 발송(SMTP)
   mail:
-    host: smtp.gmail.com
-    port: 587
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     default-encoding: UTF-8
@@ -21,7 +17,6 @@ spring:
           starttls:
             enable: true
 
-  # Redis
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -30,25 +25,6 @@ spring:
   web:
     resources:
       add-mappings: true
-
-  thymeleaf:
-    # dev/prod에서 오버라이드 (dev는 false, prod는 true)
-    cache: false
-
-  # DB 설정 (호스트/포트/계정 모두 환경변수)
-  datasource:
-    url: >
-      jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3307}/${DB_NAME:jobproj_db}
-      ?useSSL=false
-      &serverTimezone=Asia/Seoul
-      &characterEncoding=utf8
-      &allowPublicKeyRetrieval=true
-      &allowMultiQueries=true
-    username: ${DB_USERNAME:db_user}
-    password: ${DB_PASSWORD:db_password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      connectionInitSql: "SET NAMES utf8mb4"
 
   jackson:
     serialization:
@@ -77,12 +53,12 @@ management:
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
-  expiration-ms: ${JWT_ACCESS_EXP_MS:3600000}
-  refresh-expiration-ms: ${JWT_REFRESH_EXP_MS:1209600000}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:1209600000}
 
 springdoc:
   api-docs:
-    enabled: true         # dev 기본 true, prod에서 false로 덮어씀
+    enabled: true
     path: /api-docs
   cache:
     disabled: true
@@ -90,17 +66,14 @@ springdoc:
     path: /docs
     use-root-path: false
 
-# Jobkorea API
 jobkorea:
   api:
-    url: ${JOBKOREA_API_URL:}
-    key: ${JOBKOREA_API_KEY:}
-    default-keywords: >
-      ${JOBKOREA_DEFAULT_KEYWORDS:Java|Spring|Python|JavaScript|React|Node|백엔드|프론트엔드|풀스택|개발자}
+    url: ${JOBKOREA_API_URL:"http://www.jobkorea.co.kr/Service_JK/Data/JK_GI_XML_List.asp"}
+    key: ${JOBKOREA_API_KEY:1284}
+    default-keywords: ${JOBKOREA_DEFAULT_KEYWORDS:"Java|Spring|Python|JavaScript|React|Node|백엔드|프론트엔드|풀스택|개발자"}
 
-# Gemini API
 gemini:
   api:
-    key: ${GEMINI_API_KEY:}
-    url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    key: ${GEMINI_API_KEY}
+    url: ${GEMINI_API_URL:"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"}
+    model: ${GEMINI_MODEL:"gemini-2.5-flash"}
