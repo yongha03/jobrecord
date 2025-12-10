@@ -189,7 +189,7 @@ public class AuthCtrl {
         boolean exists = userService.isEmailDuplicate(email);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
-        // 🔽 전화번호 중복 체크 API
+        // 전화번호 중복 체크 API
         @Operation(
                 summary = "전화번호 중복 체크",
                 description = "회원가입 시 입력한 전화번호가 이미 사용 중인지 확인합니다.",

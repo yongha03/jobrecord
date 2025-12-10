@@ -83,8 +83,8 @@ jobkorea:
   api:
     # API 키가 없으면 Mock 데이터 사용
     # API 키를 받으면 여기에 입력
-    url: ""
-    key: ""
+    url: "http://www.jobkorea.co.kr/Service_JK/Data/JK_GI_XML_List.asp?api=1284"
+    key: "1284"
     # 기본 검색 키워드 (개발자 전용)
     default-keywords: Java|Spring|Python|JavaScript|React|Node|백엔드|프론트엔드|풀스택|개발자
 

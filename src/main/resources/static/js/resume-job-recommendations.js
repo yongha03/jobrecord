@@ -221,6 +221,8 @@ async function loadJobs() {
             throw new Error(result.message || '채용공고 조회 실패');
         }
         
+        console.log('✅ 채용공고 조회 성공:', result.data.length + '개');
+        
         // 종합 이력서 정보
         const resumeInfo = {
             name: selectedResume?.name || '미입력',
@@ -233,6 +235,8 @@ async function loadJobs() {
         let jobs = [];
         if (resumeInfo.skills.length > 0 || resumeInfo.experiences.length > 0) {
             try {
+                console.log('🤖 Gemini AI 배치 매칭 시작...');
+                
                 const matchResponse = await apiFetch('/jobs/match/batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -245,6 +249,8 @@ async function loadJobs() {
                 const matchResult = await matchResponse.json();
                 
                 if (matchResult.success && matchResult.data) {
+                    console.log('✅ Gemini AI 배치 매칭 성공!');
+                    
                     // Gemini 결과와 공고 매핑
                     jobs = result.data.map((job, index) => {
                         const match = matchResult.data[index];
@@ -258,6 +264,7 @@ async function loadJobs() {
                 jobs = result.data.map(job => convertJobDtoToCardSimple(job));
             }
         } else {
+            console.log('ℹ️ 이력서 정보 없음, 기본 매칭 사용');
             jobs = result.data.map(job => convertJobDtoToCardSimple(job));
         }
         
@@ -274,8 +281,10 @@ async function loadJobs() {
         renderJobs(filteredJobs);
         updateSummary(filteredJobs);
         
+        console.log('✅ 렌더링 완료:', filteredJobs.length + '개 공고');
+        
     } catch (error) {
-        console.error('채용공고 로드 실패:', error);
+        console.error('❌ 채용공고 로드 실패:', error);
         document.getElementById('job-list').innerHTML = 
             '<p style="text-align: center; color: #ef4444; padding: 40px;">채용공고를 불러오는데 실패했습니다.</p>';
     } finally {
