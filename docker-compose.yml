@@ -10,7 +10,7 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      TZ: Asia/Seoul
+      TZ: ${TZ:-Asia/Seoul}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -19,9 +19,9 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - jobrecord-net
-    # 로컬 개발에서는 3307로 expose, 서버에서는 값만 바꾸거나 주석 처리
+    # 로컬에서는 3307, 서버에서는 3306 등 .env에서 조절
     ports:
-      - "${DB_PORT_MAPPING}:3306"
+      - "${DB_PORT_MAPPING:-3307}:3306"
 
   redis:
     image: redis:latest
@@ -33,50 +33,43 @@ services:
     networks:
       - jobrecord-net
     ports:
-      - "${REDIS_PORT_MAPPING}:6379"
+      - "${REDIS_PORT_MAPPING:-6379}:6379"
 
   backend:
-    image: ${BACKEND_IMAGE_NAME}
-    # 또는 서버에서 직접 빌드할 거면 아래 주석 풀고 image 끄고:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    # ✅ 서버에서 직접 빌드할 거면 build 사용
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # ✅ 레지스트리에서 가져올 거면 위 build 지우고 아래 image 사용
+    # image: ${BACKEND_IMAGE_NAME:-jobrecord-backend}
     container_name: jobrecord-backend
     restart: always
     depends_on:
       - mysql8
       - redis
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      SERVER_PORT: ${SERVER_PORT}
+    # .env(.prod) 전체를 컨테이너 환경변수로 전달
+    env_file:
+      - .env
+    networks:
+      - jobrecord-net
+    # 내부에서만 8080으로 노출 (nginx가 프록시)
+    expose:
+      - "8080"
+    # 👇 로컬에서 직접 8080으로 보고 싶으면 이 부분 잠깐 쓰면 됨
+    # ports:
+    #   - "${SERVER_PORT:-8080}:8080"
 
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
-      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS}
-
-      JOBKOREA_API_URL: ${JOBKOREA_API_URL}
-      JOBKOREA_API_KEY: ${JOBKOREA_API_KEY}
-      JOBKOREA_DEFAULT_KEYWORDS: ${JOBKOREA_DEFAULT_KEYWORDS}
-
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_API_URL: ${GEMINI_API_URL}
-      GEMINI_MODEL: ${GEMINI_MODEL}
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: jobrecord-nginx
+    restart: always
+    depends_on:
+      - backend
     ports:
-      - "${SERVER_PORT}:8080"
+      - "80:80"   # 브라우저에서 http://도메인 으로 접속
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/logs:/var/log/nginx
     networks:
       - jobrecord-net
 
