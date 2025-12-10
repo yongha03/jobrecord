@@ -1,4 +1,5 @@
 plugins {
+    // 기본 Java + Spring Boot + 의존성 관리 + 코드 스타일 도구
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
@@ -10,6 +11,7 @@ group = 'com.jobproj'
 version = '0.0.1-SNAPSHOT'
 
 java {
+    // 프로젝트 표준 JDK 버전
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
@@ -19,6 +21,13 @@ repositories {
     mavenCentral()
 }
 
+/**
+ * Gradle 의존성 구성 설정
+ *
+ * - compileOnly: 컴파일 시에만 필요한 라이브러리 (런타임에는 제외)
+ * - developmentOnly: 개발 환경에서만 사용할 라이브러리 (devtools, dotenv 등)
+ * - runtimeClasspath: 실행 클래스패스에 developmentOnly 도 포함되도록 확장
+ */
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -30,7 +39,9 @@ configurations {
 }
 
 dependencies {
-    // Spring Boot Core
+    // ============================
+    // Spring Boot 핵심 스타터
+    // ============================
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -38,47 +49,68 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.security:spring-security-crypto'
 
-    // Spring Boot mail 2233076 10주차 추가
+    // ============================
+    // 인프라 & 외부 연동
+    // ============================
+    // SMTP 메일 발송
     implementation 'org.springframework.boot:spring-boot-starter-mail'
-    // Spring Boot Data Redis 2233076 10주차 추가
+    // Redis 캐시/세션
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
-    // ✅ View (templates/*.html 렌더링용)
+    // ============================
+    // View / 문서화
+    // ============================
+    // Thymeleaf 템플릿 렌더링 (templates/*.html)
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-
-    // ✅ Swagger (Spring Boot 3.3.x 호환)
+    // Swagger / OpenAPI 문서 (Spring Boot 3.3.x 호환)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
-    // ✅ JWT 0.11.5 (parserBuilder 사용 가능)
+    // ============================
+    // 보안 / 인증(JWT)
+    // ============================
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // ✅ DB
+    // ============================
+    // DB & 마이그레이션
+    // ============================
     runtimeOnly 'com.mysql:mysql-connector-j'
-
-    // ✅ Flyway
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
 
-    // ✅ Lombok
+    // ============================
+    // Lombok (컴파일 타임 전용)
+    // ============================
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // ✅ Devtools (개발 편의)
+    // ============================
+    // 개발 편의 (Dev 전용)
+    // ============================
+    // 코드 변경 시 자동 리스타트 등
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // .env 파일을 자동으로 읽어서 Spring Environment에 주입
+    //  - 루트에 .env 두고 application.yml 에서 ${KEY} 형태로 사용
+    //  - 운영(prod)에서는 쓰지 않고, 로컬/개발 환경에서만 사용
+    developmentOnly 'me.paulschwarz:spring-dotenv:4.0.0'
 
-    // 융합프로젝트 김태형 12주차 : HTML 템플릿을 PDF로 변환(Flying Saucer + OpenPDF)
+    // ============================
+    // PDF 변환 (HTML -> PDF)
+    // ============================
+    // Flying Saucer + OpenPDF (이력서 템플릿 → PDF)
     implementation 'org.xhtmlrenderer:flying-saucer-pdf-openpdf:9.1.22'
 
-    // ✅ Test
+    // ============================
+    // 테스트
+    // ============================
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // 경고 보기용 컴파일 옵션
+    // 경고 확인용 컴파일 옵션
     options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
 }
 
@@ -86,7 +118,11 @@ tasks.test {
     useJUnitPlatform()
 }
 
-/** Checkstyle 완전 비활성화 */
+/**
+ * Checkstyle 설정
+ *  - 도구 버전만 지정해두고, 실제 Checkstyle 검사는 비활성화
+ *    (코딩 규칙은 Spotless로 정리)
+ */
 checkstyle {
     toolVersion = '10.18.2'
 }
@@ -94,7 +130,11 @@ tasks.withType(Checkstyle).configureEach {
     enabled = false
 }
 
-/** 코드 포맷 */
+/**
+ * Spotless 코드 포맷터
+ *  - Google Java Format 사용
+ *  - 공백/개행 정리
+ */
 spotless {
     java {
         googleJavaFormat('1.22.0')
@@ -104,6 +144,11 @@ spotless {
     }
 }
 
+/**
+ * 빌드/검사 파이프라인
+ *  - check 전에 spotlessCheck 실행
+ *  - build 전에 spotlessApply(자동 포맷) 실행
+ */
 tasks.check {
     dependsOn 'spotlessCheck'
 }
